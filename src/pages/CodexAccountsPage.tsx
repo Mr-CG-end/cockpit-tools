@@ -70,6 +70,7 @@ import {
   getCodexAuthMetadata,
   hasCodexAccountName,
   isCodexApiKeyAccount,
+  isCodexExplicitFreePlanType,
   isCodexTeamLikePlan,
   type CodexApiProviderMode,
   type CodexQuotaErrorInfo,
@@ -139,6 +140,12 @@ import {
   removeAccountsOverviewFilterField,
   writeAccountsOverviewFilterField,
 } from '../utils/accountsOverviewFilterPersistence';
+import {
+  getCodexLocalAccessRiskNoticeConfirmLabel,
+  isCodexLocalAccessRiskNoticeDismissed,
+  setCodexLocalAccessRiskNoticeDismissed,
+  type CodexLocalAccessRiskNoticeAction,
+} from '../utils/codexLocalAccessRiskNotice';
 
 const CODEX_TOKEN_SINGLE_EXAMPLE = `{
   "tokens": {
@@ -180,6 +187,9 @@ const CODEX_USAGE_URL = 'https://platform.openai.com/usage';
 const CODEX_OVERVIEW_LAYOUT_MODE_KEY = 'agtools.codex.accounts.overview_layout_mode';
 const CODEX_LOCAL_ACCESS_EXPANDED_KEY = 'agtools.codex.local_access_entry_expanded.v1';
 const DEFAULT_CODEX_API_PROVIDER_ID = CODEX_API_PROVIDER_CUSTOM_ID;
+const CODEX_LOCAL_ACCESS_FALLBACK_PORT = 54140;
+const CODEX_LOCAL_ACCESS_FALLBACK_BASE_URL = `http://127.0.0.1:${CODEX_LOCAL_ACCESS_FALLBACK_PORT}/v1`;
+const CODEX_LOCAL_ACCESS_FALLBACK_API_KEY_MASK = 'agt_codex_••••••••••••';
 const CODEX_FILTER_PERSISTENCE_SCOPE = normalizeAccountsOverviewScope('Codex');
 const FILTER_TYPES_FIELD = 'filter_types';
 const GROUP_FILTER_FIELD = 'group_filter';
@@ -291,9 +301,13 @@ export function CodexAccountsPage() {
   const [localAccessRefreshing, setLocalAccessRefreshing] = useState(false);
   const [showLocalAccessHideConfirm, setShowLocalAccessHideConfirm] = useState(false);
   const [localAccessHideSubmitting, setLocalAccessHideSubmitting] = useState(false);
+  const [localAccessRiskNoticeAction, setLocalAccessRiskNoticeAction] =
+    useState<CodexLocalAccessRiskNoticeAction | null>(null);
+  const [localAccessRiskNoticeRemember, setLocalAccessRiskNoticeRemember] = useState(false);
   const [localAccessCopiedField, setLocalAccessCopiedField] = useState<'baseUrl' | 'apiKey' | null>(null);
   const [localAccessKeyVisible, setLocalAccessKeyVisible] = useState(false);
   const [localAccessEntryVisible, setLocalAccessEntryVisible] = useState(true);
+  const localAccessRiskNoticeResolverRef = useRef<((accepted: boolean) => void) | null>(null);
   const [localAccessDetailsExpanded, setLocalAccessDetailsExpanded] = useState<boolean>(() => {
     try {
       return localStorage.getItem(CODEX_LOCAL_ACCESS_EXPANDED_KEY) === '1';
@@ -309,6 +323,38 @@ export function CodexAccountsPage() {
   useEffect(() => {
     reloadCodexGroups();
   }, [reloadCodexGroups]);
+
+  useEffect(() => () => {
+    if (localAccessRiskNoticeResolverRef.current) {
+      localAccessRiskNoticeResolverRef.current(false);
+      localAccessRiskNoticeResolverRef.current = null;
+    }
+  }, []);
+
+  const closeLocalAccessRiskNotice = useCallback((accepted: boolean) => {
+    if (accepted && localAccessRiskNoticeRemember) {
+      setCodexLocalAccessRiskNoticeDismissed(true);
+    }
+    const resolver = localAccessRiskNoticeResolverRef.current;
+    localAccessRiskNoticeResolverRef.current = null;
+    setLocalAccessRiskNoticeAction(null);
+    setLocalAccessRiskNoticeRemember(false);
+    resolver?.(accepted);
+  }, [localAccessRiskNoticeRemember]);
+
+  const requestLocalAccessRiskNotice = useCallback(
+    (action: CodexLocalAccessRiskNoticeAction): Promise<boolean> => {
+      if (isCodexLocalAccessRiskNoticeDismissed()) {
+        return Promise.resolve(true);
+      }
+      setLocalAccessRiskNoticeRemember(false);
+      setLocalAccessRiskNoticeAction(action);
+      return new Promise<boolean>((resolve) => {
+        localAccessRiskNoticeResolverRef.current = resolve;
+      });
+    },
+    [],
+  );
 
   const toggleGroupFilterValue = useCallback((groupId: string) => {
     setGroupFilter((prev) => {
@@ -2037,7 +2083,7 @@ export function CodexAccountsPage() {
     localAccessSaving || localAccessTesting || localAccessStarting || localAccessRefreshing;
 
   const resolveLocalAccessBaseUrl = useCallback(() => {
-    if (!localAccessCollection) return '';
+    if (!localAccessCollection) return localAccessState?.baseUrl || CODEX_LOCAL_ACCESS_FALLBACK_BASE_URL;
     return localAccessState?.baseUrl || `http://127.0.0.1:${localAccessCollection.port}/v1`;
   }, [localAccessCollection, localAccessState?.baseUrl]);
 
@@ -2110,7 +2156,14 @@ export function CodexAccountsPage() {
   const handleSaveLocalAccessAccounts = useCallback(async (accountIds: string[]) => {
     setLocalAccessSaving(true);
     try {
-      const nextState = await codexLocalAccessService.saveCodexLocalAccessAccounts(accountIds);
+      const accountById = new Map(accounts.map((account) => [account.id, account]));
+      const filteredAccountIds = accountIds.filter((accountId) => {
+        const account = accountById.get(accountId);
+        if (!account) return false;
+        if (isCodexApiKeyAccount(account)) return false;
+        return !isCodexExplicitFreePlanType(account.plan_type);
+      });
+      const nextState = await codexLocalAccessService.saveCodexLocalAccessAccounts(filteredAccountIds);
       setLocalAccessState(nextState);
       setMessage({
         text: t('codex.localAccess.saveSuccess', 'API 服务集合已更新'),
@@ -2122,7 +2175,7 @@ export function CodexAccountsPage() {
     } finally {
       setLocalAccessSaving(false);
     }
-  }, [setMessage, t]);
+  }, [accounts, setMessage, t]);
 
   const handleRemoveLocalAccessAccount = useCallback(async (accountId: string) => {
     if (!localAccessCollection) return;
@@ -2372,6 +2425,10 @@ export function CodexAccountsPage() {
 
   const handleToggleLocalAccessEnabled = useCallback(async () => {
     if (!localAccessCollection) return;
+    if (!localAccessCollection.enabled) {
+      const confirmed = await requestLocalAccessRiskNotice('service');
+      if (!confirmed) return;
+    }
     setLocalAccessSaving(true);
     try {
       const nextState = await codexLocalAccessService.setCodexLocalAccessEnabled(!localAccessCollection.enabled);
@@ -2388,7 +2445,7 @@ export function CodexAccountsPage() {
     } finally {
       setLocalAccessSaving(false);
     }
-  }, [localAccessCollection, setMessage, t]);
+  }, [localAccessCollection, requestLocalAccessRiskNotice, setMessage, t]);
 
   const handleTestLocalAccess = useCallback(async () => {
     if (!localAccessCollection) {
@@ -2453,6 +2510,23 @@ export function CodexAccountsPage() {
     if (!localAccessCollection) {
       throw new Error(t('codex.localAccess.testUnavailable', '当前 API 服务地址不可用'));
     }
+    if (!localAccessCollection.enabled) {
+      const confirmedEnableAndSwitch = await confirmDialog(
+        t(
+          'codex.localAccess.enableBeforeActivateMessage',
+          'API 服务当前未启用，需要先启用服务。是否启用并切号？',
+        ),
+        {
+          title: t('codex.localAccess.enableBeforeActivateTitle', '服务未启用'),
+          kind: 'warning',
+          okLabel: t('codex.localAccess.enableAndActivateAction', '启用并切号'),
+          cancelLabel: t('common.cancel', '取消'),
+        },
+      );
+      if (!confirmedEnableAndSwitch) return;
+    }
+    const confirmed = await requestLocalAccessRiskNotice('service');
+    if (!confirmed) return;
     setLocalAccessStarting(true);
     try {
       const nextState = await codexLocalAccessService.activateCodexLocalAccess();
@@ -2467,7 +2541,7 @@ export function CodexAccountsPage() {
     } finally {
       setLocalAccessStarting(false);
     }
-  }, [fetchCurrentAccount, localAccessCollection, setMessage, t]);
+  }, [fetchCurrentAccount, localAccessCollection, requestLocalAccessRiskNotice, setMessage, t]);
 
   const handleQuickToggleLocalAccessEnabled = useCallback(async () => {
     try {
@@ -2978,39 +3052,32 @@ export function CodexAccountsPage() {
     const showLocalAccessDetails = isGridLocalAccessCard ? true : localAccessDetailsExpanded;
     const baseUrl = resolveLocalAccessBaseUrl();
     const apiKeyDisplay = !localAccessCollection
-      ? '-'
+      ? CODEX_LOCAL_ACCESS_FALLBACK_API_KEY_MASK
       : localAccessKeyVisible
         ? localAccessCollection.apiKey
         : `${localAccessCollection.apiKey.slice(0, 10)}••••••••••••`;
     const previewAccounts = localAccessAccounts.slice(0, 3);
     const hiddenCount = Math.max(0, localAccessAccounts.length - previewAccounts.length);
-    const showLocalAccessEmptyState = !localAccessCollection || previewAccounts.length === 0;
+    const showLocalAccessEmptyState = previewAccounts.length === 0;
     const localAccessStatusTone = !localAccessCollection
-      ? 'unconfigured'
+      ? 'disabled'
       : localAccessState?.running
         ? 'running'
         : localAccessCollection.enabled
           ? 'stopped'
           : 'disabled';
     const localAccessStatusText = !localAccessCollection
-      ? t('codex.localAccess.statusUnconfigured', '未配置')
+      ? t('codex.localAccess.statusDisabled', '已停用')
       : localAccessState?.running
         ? t('codex.localAccess.statusRunning', '运行中')
         : localAccessCollection.enabled
           ? t('codex.localAccess.statusStopped', '未运行')
           : t('codex.localAccess.statusDisabled', '已停用');
-    const localAccessSummaryMeta = localAccessCollection
-      ? t('codex.localAccess.summaryMeta', {
-          count: localAccessState?.memberCount ?? 0,
-          defaultValue: '{{count}} 个账号 · 仅本地访问',
-        })
-      : t('codex.localAccess.summaryMetaUnconfigured', '未配置 · 仅本地访问');
-    const localAccessEmptyMessage = !localAccessCollection
-      ? t(
-        'codex.localAccess.configEmpty',
-        '先把账号保存到 API 服务集合，随后会自动生成地址、密钥和端口。',
-      )
-      : t('codex.localAccess.emptyMembers', '当前集合暂无账号');
+    const localAccessSummaryMeta = t('codex.localAccess.summaryMeta', {
+      count: localAccessState?.memberCount ?? 0,
+      defaultValue: '{{count}} 个账号 · 仅本地访问',
+    });
+    const localAccessEmptyMessage = t('codex.localAccess.emptyMembers', '当前集合暂无账号');
 
     return (
       <div
@@ -4552,6 +4619,60 @@ export function CodexAccountsPage() {
                   {localAccessHideSubmitting
                     ? t('common.processing', '处理中...')
                     : t('common.confirm', '确认')}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {localAccessRiskNoticeAction && (
+          <div className="modal-overlay codex-local-access-hide-confirm-overlay">
+            <div
+              className="modal codex-local-access-hide-confirm-modal codex-local-access-risk-notice-modal"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="modal-header">
+                <h2>{t('codex.localAccess.riskNotice.title', '使用风险提示')}</h2>
+                <button
+                  className="modal-close"
+                  onClick={() => closeLocalAccessRiskNotice(false)}
+                  aria-label={t('common.close', '关闭')}
+                >
+                  <X />
+                </button>
+              </div>
+              <div className="modal-body">
+                <p className="codex-local-access-hide-confirm-desc">
+                  {t(
+                    'codex.localAccess.riskNotice.message',
+                    '当前 Codex API 服务相关功能，本质上属于代理转发使用方式。就目前情况看，官方暂未对此类行为进行明确管控，但后续政策、规则或可用性是否发生变化，仍存在不确定性。继续使用该功能，即表示您已知悉相关情况，并愿意自行承担可能产生的风险。',
+                  )}
+                </p>
+                <div className="codex-local-access-hide-confirm-points codex-local-access-risk-notice-points">
+                  <label className="codex-local-access-risk-notice-remember">
+                    <input
+                      type="checkbox"
+                      checked={localAccessRiskNoticeRemember}
+                      onChange={(event) => {
+                        setLocalAccessRiskNoticeRemember(event.target.checked);
+                      }}
+                    />
+                    <span>{t('codex.localAccess.riskNotice.remember', '我已知晓，不再提示')}</span>
+                  </label>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => closeLocalAccessRiskNotice(false)}
+                >
+                  {t('common.cancel', '取消')}
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => closeLocalAccessRiskNotice(true)}
+                >
+                  {getCodexLocalAccessRiskNoticeConfirmLabel(localAccessRiskNoticeAction, t)}
                 </button>
               </div>
             </div>

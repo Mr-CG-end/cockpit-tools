@@ -435,6 +435,33 @@
       "extraArgs": "自定义启动参数",
       "extraArgsPlaceholder": "例如：--disable-gpu --log-level=2",
       "extraArgsDesc": "按空格分隔参数，支持引号包裹",
+      "codexQuickConfig": {
+        "title": "上下文与压缩阈值",
+        "presetLabel": "配置预设",
+        "presetHint": "可直接选择预设（默认 / 516K / 1M），或切到自定义手动填写两个字段。",
+        "presetDefaultShort": "默认",
+        "presetDefaultDesc": "移除两个字段，回到官方默认",
+        "preset516kShort": "预设516K",
+        "preset516kDesc": "上下文=516000 / 紧凑=460000",
+        "preset1mShort": "预设1M",
+        "preset1mDesc": "上下文=1000000 / 紧凑=900000",
+        "presetCustomShort": "自定义",
+        "presetCustomDesc": "手动填写上下文与压缩阈值",
+        "contextWindow": "上下文窗口",
+        "contextWindowHint": "写入 model_context_window。仅在“自定义”模式可编辑。",
+        "autoCompactLimit": "自动压缩阈值",
+        "autoCompactLimitHint": "写入 model_auto_compact_token_limit。仅在“自定义”模式可编辑。",
+        "customDetected": "检测到当前 config.toml 为自定义值：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按你选择的预设改写。",
+        "partialDetected": "检测到当前两个字段并不完整：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按当前方案改写。",
+        "notSet": "未设置",
+        "loadFailed": "加载当前 Codex 配置失败：{{error}}",
+        "openConfig": "打开 config.toml",
+        "openFailed": "打开 config.toml 失败：{{error}}",
+        "validation": {
+          "contextWindowInvalid": "上下文窗口必须是大于 0 的整数",
+          "autoCompactInvalid": "自动压缩阈值必须是大于 0 的整数"
+        }
+      },
       "nameRequired": "请输入实例名称",
       "pathRequired": "请选择实例目录",
       "bindRequired": "请选择要绑定的账号"
@@ -858,11 +885,21 @@
       "feedbackDesc": "报告问题或提交建议",
       "supportDev": "支持开发",
       "checkUpdate": "检查更新",
+      "viewReleaseHistory": "更新记录",
       "checking": "检查中...",
       "upToDate": "已是最新版本",
       "newVersion": "发现 v{{version}}",
       "download": "下载",
-      "checkFailed": "检查更新失败，请稍后重试"
+      "checkFailed": "检查更新失败，请稍后重试",
+      "releaseHistoryTitle": "更新记录",
+      "releaseHistoryLoading": "正在加载更新记录...",
+      "releaseHistoryEmpty": "暂无更新记录",
+      "releaseHistoryLoadFailed": "加载失败：{{error}}",
+      "releaseHistorySectionAdded": "新增",
+      "releaseHistorySectionChanged": "变更",
+      "releaseHistorySectionFixed": "修复",
+      "releaseHistorySectionRemoved": "移除",
+      "downloadThisVersion": "下载此版本"
     },
     "saveSettings": "保存设置"
   },
@@ -1649,7 +1686,7 @@
       "statusStopped": "未运行",
       "statusDisabled": "已停用",
       "statusUnconfigured": "未配置",
-      "emptyMembers": "当前集合暂无账号",
+      "emptyMembers": "将账号添加到 API 服务，点击启动即可，无需其他配置",
       "footerHint": "仅监听 127.0.0.1",
       "memberOnlyLocal": "仅 Codex 访问",
       "manageAccounts": "管理账号",
@@ -1662,6 +1699,9 @@
       "testTimeout": "测试超时，请确认本地服务已启动",
       "testUnavailable": "当前 API 服务地址不可用",
       "activateAction": "启动 API 服务",
+      "enableBeforeActivateTitle": "服务未启用",
+      "enableBeforeActivateMessage": "API 服务当前未启用，需要先启用服务。是否启用并切号？",
+      "enableAndActivateAction": "启用并切号",
       "activateSuccess": "已切换到 API 服务",
       "saveSuccess": "API 服务集合已更新",
       "removeSuccess": "账号已移出 API 服务",
@@ -1702,6 +1742,14 @@
       "hideEntryEffectHide": "隐藏总览中的 API 服务入口",
       "hideEntryEffectDisable": "停用当前 API 服务",
       "hideEntryEffectRestore": "可在 Codex 设置或快捷设置中重新开启",
+      "riskNotice": {
+        "title": "使用风险提示",
+        "message": "当前 Codex API 服务相关功能，本质上属于代理转发使用方式。就目前情况看，官方暂未对此类行为进行明确管控，但后续政策、规则或可用性是否发生变化，仍存在不确定性。继续使用该功能，即表示您已知悉相关情况，并愿意自行承担可能产生的风险。",
+        "remember": "我已知晓，不再提示",
+        "acknowledge": "我已知晓",
+        "continueStart": "继续启动",
+        "continueSwitch": "继续切号"
+      },
       "statsRange": {
         "label": "统计范围",
         "daily": "日",
@@ -1733,6 +1781,8 @@
       "modal": {
         "title": "添加至 API 服务",
         "desc": "选择要加入 API 服务集合的 OAuth 账号。加入后，这些账号将从普通面板中隐藏，只在 API 服务卡片中管理。",
+        "freeNotice": "暂不支持 Free 账号，Free 账号不可勾选。",
+        "freeUnsupported": "暂不支持 Free 账号",
         "empty": "暂无可加入的 OAuth 账号",
         "selected": "已加入 API 服务",
         "available": "普通面板",
@@ -1885,16 +1935,35 @@
         "openFailed": "打开 config.toml 失败：{{error}}",
         "saveSuccess": "当前 Codex 配置已保存",
         "saveFailed": "保存当前 Codex 配置失败：{{error}}",
+        "presetLabel": "配置预设",
+        "presetHint": "可直接选择预设（默认 / 516K / 1M），或切到自定义手动填写两个字段。",
+        "presetDefaultShort": "默认",
+        "presetDefaultDesc": "移除两个字段，回到官方默认",
+        "preset516kShort": "预设516K",
+        "preset516kDesc": "上下文=516000 / 紧凑=460000",
+        "preset1mShort": "预设1M",
+        "preset1mDesc": "上下文=1000000 / 紧凑=900000",
+        "presetCustomShort": "自定义",
+        "presetCustomDesc": "手动填写上下文与压缩阈值",
+        "presetDefault": "默认（移除 model_context_window / model_auto_compact_token_limit）",
+        "preset516k": "516K（model_context_window = 516000，auto_compact = 460000）",
+        "preset1m": "1M（model_context_window = 1000000，auto_compact = 900000）",
+        "presetCustom": "自定义",
+        "contextWindow": "上下文窗口",
+        "contextWindowHint": "写入 model_context_window。仅在“自定义”模式可编辑。",
         "contextWindow1m": "1M 上下文窗口",
         "contextWindow1mHint": "启用后写入 model_context_window = 1000000，并联动管理自动压缩阈值。",
         "autoCompactLimit": "自动压缩阈值",
-        "autoCompactLimitHint": "写入 model_auto_compact_token_limit。关闭 1M 开关后，这个字段会一起移除。",
+        "autoCompactLimitHint": "写入 model_auto_compact_token_limit。仅在“自定义”模式可编辑。",
         "preview": "写入预览",
         "previewApply": "将写入",
         "previewRemove": "将移除",
-        "customDetected": "检测到当前 config.toml 存在自定义 model_context_window = {{context}}。保存后会按下方快捷项改写。",
+        "customDetected": "检测到当前 config.toml 为自定义值：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按你选择的预设改写。",
+        "partialDetected": "检测到当前两个字段并不完整：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按当前方案改写。",
+        "notSet": "未设置",
         "compactMissingDetected": "检测到当前已启用 1M 上下文，但缺少自动压缩阈值。保存后会补写默认值 {{limit}}。",
         "validation": {
+          "contextWindowInvalid": "上下文窗口必须是大于 0 的整数",
           "autoCompactInvalid": "自动压缩阈值必须是大于 0 的整数"
         }
       }
@@ -2164,15 +2233,15 @@
     "sessionManager": {
       "title": "会话管理",
       "desc": "同步、可见性修复、清理与恢复统一放在这里：顶部可一键同步会话、修复历史可见性或从废纸篓恢复，下面按项目展开查看会话并移到废纸篓。",
-    "actions": {
-      "moveToTrash": "移到废纸篓",
-      "syncSessions": "同步会话",
-      "repairVisibility": "修复可见性",
-      "restoreSessions": "恢复会话",
-      "copySessionId": "复制会话 ID",
-      "expand": "展开",
-      "collapse": "收起"
-    },
+      "actions": {
+        "moveToTrash": "移到废纸篓",
+        "syncSessions": "同步会话",
+        "repairVisibility": "修复可见性",
+        "restoreSessions": "恢复会话",
+        "copySessionId": "复制会话 ID",
+        "expand": "展开",
+        "collapse": "收起"
+      },
       "confirm": {
         "title": "移到废纸篓",
         "message": "会将所选会话从对应实例中移到废纸篓，便于后续恢复；运行中的实例可能需要重启后才会反映。确认继续？",
@@ -2188,15 +2257,15 @@
         "pickRestoreOne": "请至少选择一条待恢复会话",
         "syncNeedTwo": "至少需要两个实例才能同步会话"
       },
-    "groupCount": "{{count}} 条会话",
-    "updatedAt": "最近更新",
-    "labels": {
-      "sessionId": "会话 ID",
-      "tokenUsage": "Token使用"
-    },
-    "locationRunning": "（运行中）",
-    "untitled": "未命名会话",
-    "restoreModal": {
+      "groupCount": "{{count}} 条会话",
+      "updatedAt": "最近更新",
+      "labels": {
+        "sessionId": "会话 ID",
+        "tokenUsage": "Token使用"
+      },
+      "locationRunning": "（运行中）",
+      "untitled": "未命名会话",
+      "restoreModal": {
         "title": "恢复会话",
         "hint": "恢复会把 rollout 文件、SQLite 线程记录和 session_index 条目一起放回原实例。",
         "emptyTitle": "废纸篓里还没有会话",
@@ -2429,7 +2498,34 @@
       "configToml": "Codex 配置文件",
       "openConfigToml": "打开文件",
       "openConfigHint": "快速打开当前使用的 Codex config.toml 文件。",
-      "localAccessEntryVisible": "显示 API 服务入口"
+      "localAccessEntryVisible": "显示 API 服务入口",
+      "quickConfig": {
+        "title": "上下文与压缩阈值",
+        "presetLabel": "配置预设",
+        "presetHint": "可直接选择预设（默认 / 516K / 1M），或切到自定义手动填写两个字段。",
+        "presetDefaultShort": "默认",
+        "presetDefaultDesc": "移除两个字段，回到官方默认",
+        "preset516kShort": "预设516K",
+        "preset516kDesc": "上下文=516000 / 紧凑=460000",
+        "preset1mShort": "预设1M",
+        "preset1mDesc": "上下文=1000000 / 紧凑=900000",
+        "presetCustomShort": "自定义",
+        "presetCustomDesc": "手动填写上下文与压缩阈值",
+        "contextWindow": "上下文窗口",
+        "contextWindowHint": "写入 model_context_window。仅在“自定义”模式可编辑。",
+        "autoCompactLimit": "自动压缩阈值",
+        "autoCompactLimitHint": "写入 model_auto_compact_token_limit。仅在“自定义”模式可编辑。",
+        "customDetected": "检测到当前 config.toml 为自定义值：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按你选择的预设改写。",
+        "partialDetected": "检测到当前两个字段并不完整：model_context_window={{context}}，model_auto_compact_token_limit={{compact}}。保存后会按当前方案改写。",
+        "notSet": "未设置",
+        "loadFailed": "加载当前 Codex 配置失败：{{error}}",
+        "saveSuccess": "当前 Codex 配置已保存",
+        "saveFailed": "保存当前 Codex 配置失败：{{error}}",
+        "validation": {
+          "contextWindowInvalid": "上下文窗口必须是大于 0 的整数",
+          "autoCompactInvalid": "自动压缩阈值必须是大于 0 的整数"
+        }
+      }
     },
     "githubCopilot": {
       "title": "GitHub Copilot 设置",

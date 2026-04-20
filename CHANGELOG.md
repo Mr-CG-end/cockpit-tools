@@ -7,6 +7,42 @@ All notable changes to Cockpit Tools will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
+## [0.22.5] - 2026-04-20
+
+### Fixed
+- **Trae account upsert now uses `user_id` as the primary identity key and falls back to email only when needed**: imports no longer merge different users just because emails match, and placeholder `unknown` email values are excluded from identity matching.
+- **Cursor plan badge normalization now maps `pro_student` to `pro`**: student Pro subscriptions now render the expected Pro badge instead of exposing raw membership text.
+
+### Added
+- **Codex API Service switch now prompts to enable the service when it is currently disabled**: the account-page action shows a warning modal and supports one-click `Enable and Switch` before proceeding.
+
+### Changed
+- **Gemini default-instance settings now persist `working_dir` end-to-end**: list/update/start/stop flows all read and return the saved working directory instead of forcing it to empty.
+- **API Service activation paths no longer auto-run session visibility repair**: switching to service mode now focuses on applying the real profile change, while history-repair remains an explicit operation.
+
+---
+## [0.22.4] - 2026-04-19
+
+### Added
+- **Settings now include an in-app Release Notes viewer with per-version download actions**: the About section adds a `Release Notes` button, opens changelog history in a modal, and provides direct download actions for each listed version.
+
+### Changed
+- **Updater backend now exposes structured release history parsed from bundled changelog files**: the desktop command `get_release_history` reads `CHANGELOG.md` / `CHANGELOG.zh-CN.md`, parses `Added/Changed/Fixed/Removed` sections, and returns locale-aware results with list limits for frontend rendering.
+- **Codex Local API Service member eligibility now excludes Free-plan and API Key accounts end-to-end**: backend collection sanitization/request routing and frontend selection/save flows now enforce the same rule, while unsupported accounts are visibly marked and non-selectable.
+- **Codex Local API Service default/empty state is now stabilized for first-run and missing-collection scenarios**: runtime auto-seeds a disabled collection when absent, the overview card keeps deterministic base-url/API-key placeholders, and empty-state guidance is rewritten to the new start flow.
+
+---
+## [0.22.3] - 2026-04-19
+
+### Added
+- **Codex Session Manager now supports per-session Token usage stats on demand**: expanding a session group fetches input/output/total token counts from rollout `token_count` events, shows loading states in-row, and avoids full-file rescans via backend chunked tail parsing plus metadata cache.
+- **Codex local API Service actions now show a risk notice before first start/switch**: starting the service or switching into service mode now requires explicit acknowledgement, with an optional local `don't show again` choice.
+
+### Changed
+- **Codex quick config now uses unified presets across entry points**: Quick Settings, the Model Providers quick-config modal, and the instance editor all support `Default / 516K / 1M / Custom`, write `model_context_window` and `model_auto_compact_token_limit` directly, and validate both fields as positive integers.
+- **Codex instance quick-config now writes to the target instance's real `config.toml`**: backend commands can read/save/open the effective profile path for each instance instead of only targeting the default home.
+
+---
 ## [0.22.2] - 2026-04-18
 
 ### Changed
