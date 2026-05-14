@@ -16,7 +16,7 @@ fn is_profile_initialized(user_data_dir: &str) -> bool {
     }
 }
 
-fn inject_bound_account_for_instance_start(
+async fn inject_bound_account_for_instance_start(
     user_data_dir: &str,
     bind_account_id: Option<&str>,
 ) -> Result<(), String> {
@@ -38,7 +38,34 @@ fn inject_bound_account_for_instance_start(
         bind_id, safe_dir
     ));
 
-    modules::windsurf_instance::close_windsurf(&[user_data_dir.to_string()], 20)?;
+    // ===== Devin 账号: 切号前用 auth1 预刷新 token =====
+    // ide_token 是机器绑定 + 短期有效，每次切号必须重新走 4 步链路拿新鲜 token，
+    // 否则切号成功但 IDE 启动后用过期 token 调消息接口会被服务端 deny (error 12)。
+    // Firebase 账号没这个机制，跳过。
+    let is_devin = account
+        .devin_auth1_token
+        .as_deref()
+        .map(|s| s.starts_with("auth1_"))
+        .unwrap_or(false);
+    if is_devin {
+        modules::logger::log_info(&format!(
+            "[Windsurf Switch] Devin 账号 preflight refresh: account_id={}",
+            bind_id
+        ));
+        match modules::windsurf_account::refresh_account_token(bind_id).await {
+            Ok(_) => {
+                modules::logger::log_info("[Windsurf Switch] Devin preflight refresh 成功");
+            }
+            Err(err) => {
+                // 失败不致命：降级用账号文件里的旧 token，IDE 可能能登录但发消息会失败
+                modules::logger::log_warn(&format!(
+                    "[Windsurf Switch] Devin preflight refresh 失败（继续切号，可能影响发消息）: {}",
+                    err
+                ));
+            }
+        }
+    }
+
     modules::windsurf_instance::inject_account_to_profile(Path::new(user_data_dir), bind_id)?;
     modules::logger::log_info(&format!("Windsurf 账号注入完成: {}", account.github_login));
     Ok(())
@@ -226,17 +253,13 @@ pub async fn windsurf_start_instance(instance_id: String) -> Result<InstanceProf
         let default_dir = modules::windsurf_instance::get_default_windsurf_user_data_dir()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();
         let default_settings = modules::windsurf_instance::load_default_settings()?;
-        if let Some(pid) =
-            modules::windsurf_instance::resolve_windsurf_pid(default_settings.last_pid, None)
-        {
-            modules::process::close_pid(pid, 20)?;
-            let _ = modules::windsurf_instance::update_default_pid(None)?;
-        }
         modules::windsurf_instance::close_windsurf(&[default_dir_str.clone()], 20)?;
+        let _ = modules::windsurf_instance::update_default_pid(None)?;
         inject_bound_account_for_instance_start(
             &default_dir_str,
             default_settings.bind_account_id.as_deref(),
-        )?;
+        )
+        .await?;
         let extra_args = modules::process::parse_extra_args(&default_settings.extra_args);
         let pid = modules::windsurf_instance::start_windsurf_default_with_args_with_new_window(
             &extra_args,
@@ -268,18 +291,13 @@ pub async fn windsurf_start_instance(instance_id: String) -> Result<InstanceProf
         .find(|item| item.id == instance_id)
         .ok_or("实例不存在")?;
 
-    if let Some(pid) = modules::windsurf_instance::resolve_windsurf_pid(
-        instance.last_pid,
-        Some(&instance.user_data_dir),
-    ) {
-        modules::process::close_pid(pid, 20)?;
-        let _ = modules::windsurf_instance::update_instance_pid(&instance.id, None)?;
-    }
     modules::windsurf_instance::close_windsurf(&[instance.user_data_dir.clone()], 20)?;
+    let _ = modules::windsurf_instance::update_instance_pid(&instance.id, None)?;
     inject_bound_account_for_instance_start(
         &instance.user_data_dir,
         instance.bind_account_id.as_deref(),
-    )?;
+    )
+    .await?;
     let extra_args = modules::process::parse_extra_args(&instance.extra_args);
     let pid = modules::windsurf_instance::start_windsurf_with_args_with_new_window(
         &instance.user_data_dir,
@@ -304,16 +322,8 @@ pub async fn windsurf_stop_instance(instance_id: String) -> Result<InstanceProfi
         let default_dir = modules::windsurf_instance::get_default_windsurf_user_data_dir()?;
         let default_dir_str = default_dir.to_string_lossy().to_string();
         let default_settings = modules::windsurf_instance::load_default_settings()?;
-        if let Some(pid) =
-            modules::windsurf_instance::resolve_windsurf_pid(default_settings.last_pid, None)
-        {
-            modules::process::close_pid(pid, 20)?;
-        }
-        let updated_settings = modules::windsurf_instance::update_default_pid(None)?;
-        let running = updated_settings
-            .last_pid
-            .and_then(|pid| modules::windsurf_instance::resolve_windsurf_pid(Some(pid), None))
-            .is_some();
+        modules::windsurf_instance::close_windsurf(&[default_dir_str.clone()], 20)?;
+        let _ = modules::windsurf_instance::update_default_pid(None)?;
         return Ok(InstanceProfileView {
             id: DEFAULT_INSTANCE_ID.to_string(),
             name: String::new(),
@@ -324,7 +334,7 @@ pub async fn windsurf_stop_instance(instance_id: String) -> Result<InstanceProfi
             created_at: 0,
             last_launched_at: None,
             last_pid: None,
-            running,
+            running: false,
             initialized: is_profile_initialized(&default_dir.to_string_lossy()),
             is_default: true,
             follow_local_account: false,
@@ -338,12 +348,7 @@ pub async fn windsurf_stop_instance(instance_id: String) -> Result<InstanceProfi
         .find(|item| item.id == instance_id)
         .ok_or("实例不存在")?;
 
-    if let Some(pid) = modules::windsurf_instance::resolve_windsurf_pid(
-        instance.last_pid,
-        Some(&instance.user_data_dir),
-    ) {
-        modules::process::close_pid(pid, 20)?;
-    }
+    modules::windsurf_instance::close_windsurf(&[instance.user_data_dir.clone()], 20)?;
     let updated = modules::windsurf_instance::update_instance_pid(&instance.id, None)?;
     let initialized = is_profile_initialized(&updated.user_data_dir);
     Ok(InstanceProfileView::from_profile(

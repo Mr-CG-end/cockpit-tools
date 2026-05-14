@@ -48,7 +48,7 @@ jobs:
       - name: Rust setup
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || (contains(matrix.args, 'aarch64') && 'aarch64-unknown-linux-gnu' || '') }}
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Node.js setup
         uses: actions/setup-node@v4
@@ -241,7 +241,11 @@ jobs:
             .platforms["windows-x86_64"] and
             .platforms["windows-x86_64-nsis"] and
             .platforms["linux-x86_64-appimage"] and
-            .platforms["linux-aarch64-appimage"]
+            .platforms["linux-x86_64-deb"] and
+            .platforms["linux-x86_64-rpm"] and
+            .platforms["linux-aarch64-appimage"] and
+            .platforms["linux-aarch64-deb"] and
+            .platforms["linux-aarch64-rpm"]
           ' latest.json > /dev/null
           jq -r '.platforms | keys[]' latest.json
 

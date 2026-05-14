@@ -1,5 +1,13 @@
 use serde::{Deserialize, Serialize};
 
+fn default_token_source_mode() -> String {
+    "managed".to_string()
+}
+
+fn is_false(value: &bool) -> bool {
+    !*value
+}
+
 /// Codex 认证模式
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -64,7 +72,19 @@ pub struct CodexAccount {
     pub account_name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub account_structure: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub account_note: Option<String>,
     pub tokens: CodexTokens,
+    #[serde(default)]
+    pub token_generation: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub token_updated_at: Option<i64>,
+    #[serde(default = "default_token_source_mode")]
+    pub token_source_mode: String,
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub requires_reauth: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reauth_reason: Option<String>,
     pub quota: Option<CodexQuota>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub quota_error: Option<CodexQuotaErrorInfo>,
@@ -190,6 +210,7 @@ impl Default for CodexAccountIndex {
 /// JWT Payload 中的用户信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexJwtPayload {
+    #[serde(default)]
     pub aud: serde_json::Value, // 可能是 string 或 array
     pub iss: Option<String>,
     pub email: Option<String>,
@@ -228,7 +249,13 @@ impl CodexAccount {
             organization_id: None,
             account_name: None,
             account_structure: None,
+            account_note: None,
             tokens,
+            token_generation: 0,
+            token_updated_at: Some(now),
+            token_source_mode: default_token_source_mode(),
+            requires_reauth: false,
+            reauth_reason: None,
             quota: None,
             quota_error: None,
             usage_updated_at: None,

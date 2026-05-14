@@ -15,6 +15,7 @@ import {
   Server,
   ShieldCheck,
   Trash2,
+  Wrench,
   X,
 } from 'lucide-react';
 import { confirm as confirmDialog } from '@tauri-apps/plugin-dialog';
@@ -22,16 +23,26 @@ import { useTranslation } from 'react-i18next';
 import type { CodexAccount } from '../types/codex';
 import type { CodexAccountGroup } from '../services/codexAccountGroupService';
 import type {
+  CodexLocalAccessAddressKind,
   CodexLocalAccessRoutingStrategy,
   CodexLocalAccessState,
   CodexLocalAccessStatsWindow,
 } from '../types/codexLocalAccess';
-import { isCodexApiKeyAccount, isCodexExplicitFreePlanType } from '../types/codex';
+import {
+  getCodexPlanFilterKey,
+  isCodexApiKeyAccount,
+  isCodexExplicitFreePlanType,
+} from '../types/codex';
 import {
   buildCodexAccountPresentation,
   buildQuotaPreviewLines,
 } from '../presentation/platformAccountPresentation';
 import { buildValidAccountsFilterOption, splitValidityFilterValues } from '../utils/accountValidityFilter';
+import {
+  formatCodexQuotaPoolPercent,
+  summarizeCodexQuotaPool,
+  type CodexQuotaPoolItem,
+} from '../utils/codexQuotaPool';
 import { AccountTagFilterDropdown } from './AccountTagFilterDropdown';
 import {
   MultiSelectFilterDropdown,
@@ -45,6 +56,9 @@ interface CodexLocalAccessModalProps {
   isOpen: boolean;
   mode: 'panel' | 'members';
   state: CodexLocalAccessState | null;
+  addressKind: CodexLocalAccessAddressKind;
+  addressOptions: Array<{ value: string; label: string }>;
+  onAddressKindChange: (value: string) => void;
   accounts: CodexAccount[];
   accountGroups: CodexAccountGroup[];
   initialSelectedIds: string[];
@@ -61,14 +75,42 @@ interface CodexLocalAccessModalProps {
     strategy: CodexLocalAccessRoutingStrategy,
   ) => Promise<unknown> | unknown;
   onRotateApiKey: () => Promise<unknown> | unknown;
+  onKillPort: () => Promise<unknown> | unknown;
   onToggleEnabled: () => Promise<unknown> | unknown;
   onTest: () => Promise<number> | number;
   saving: boolean;
   testing: boolean;
   starting: boolean;
+  portCleanupBusy: boolean;
 }
 
 type StatsRangeKey = 'daily' | 'weekly' | 'monthly';
+type CopyableField = 'apiPortUrl' | 'baseUrl' | 'apiKey' | 'modelId';
+const CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY =
+  'agtools.codex.local_access.stats_range.v1';
+
+function normalizeStatsRangeKey(value: string | null | undefined): StatsRangeKey {
+  if (value === 'weekly' || value === 'monthly') {
+    return value;
+  }
+  return 'daily';
+}
+
+function readStoredStatsRange(): StatsRangeKey {
+  try {
+    return normalizeStatsRangeKey(localStorage.getItem(CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY));
+  } catch {
+    return 'daily';
+  }
+}
+
+function persistStatsRange(value: StatsRangeKey): void {
+  try {
+    localStorage.setItem(CODEX_LOCAL_ACCESS_STATS_RANGE_STORAGE_KEY, value);
+  } catch {
+    // ignore storage write failures
+  }
+}
 
 function formatCompactNumber(value: number): string {
   return new Intl.NumberFormat('en', {
@@ -83,6 +125,15 @@ function formatLatencyMs(value: number): string {
   return `${Math.round(value)}ms`;
 }
 
+function formatQuotaPoolLabel(
+  baseLabel: string,
+  pool: CodexQuotaPoolItem,
+  hourlyLabel: string,
+  weeklyLabel: string,
+): string {
+  return `${baseLabel} · ${hourlyLabel} ${formatCodexQuotaPoolPercent(pool.hourly)} · ${weeklyLabel} ${formatCodexQuotaPoolPercent(pool.weekly)}`;
+}
+
 function areSetsEqual(left: Set<string>, right: Set<string>): boolean {
   if (left.size !== right.size) return false;
   for (const value of left) {
@@ -95,22 +146,27 @@ export function CodexLocalAccessModal({
   isOpen,
   mode,
   state,
+  addressKind,
+  addressOptions,
+  onAddressKindChange,
   accounts,
   accountGroups,
   initialSelectedIds,
   maskAccountText,
-    onClose,
-    onSaveAccounts,
-    onClearStats,
-    onRefreshStats,
-    onUpdatePort,
-    onUpdateRoutingStrategy,
-    onRotateApiKey,
+  onClose,
+  onSaveAccounts,
+  onClearStats,
+  onRefreshStats,
+  onUpdatePort,
+  onUpdateRoutingStrategy,
+  onRotateApiKey,
+  onKillPort,
   onToggleEnabled,
   onTest,
   saving,
   testing,
   starting,
+  portCleanupBusy,
 }: CodexLocalAccessModalProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -123,13 +179,18 @@ export function CodexLocalAccessModal({
   const [notice, setNotice] = useState('');
   const [portInput, setPortInput] = useState('');
   const [keyVisible, setKeyVisible] = useState(false);
-  const [copiedField, setCopiedField] = useState<'baseUrl' | 'apiKey' | null>(null);
-  const [statsRange, setStatsRange] = useState<StatsRangeKey>('daily');
+  const [copiedField, setCopiedField] = useState<CopyableField | null>(null);
+  const [selectedModelId, setSelectedModelId] = useState('');
+  const [statsRange, setStatsRange] = useState<StatsRangeKey>(() => readStoredStatsRange());
   const selectAllCheckboxRef = useRef<HTMLInputElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const collection = state?.collection ?? null;
-  const baseUrl = state?.baseUrl || (collection ? `http://127.0.0.1:${collection.port}/v1` : '');
+  const apiPortUrl = state?.apiPortUrl ?? '';
+  const baseUrl = state?.baseUrl ?? '';
+  const displayBaseUrl =
+    addressKind === 'lan' && state?.lanBaseUrl ? state.lanBaseUrl : baseUrl;
+  const modelIds = state?.modelIds ?? [];
   const stats = state?.stats;
   const statsRangeOptions = useMemo(
     () =>
@@ -140,12 +201,24 @@ export function CodexLocalAccessModal({
       ] satisfies Array<{ key: StatsRangeKey; label: string }>,
     [t],
   );
+  const quotaPoolLabels = useMemo(
+    () => ({
+      hourly: t('codex.localAccess.quotaPool.hourlyShort', '5h'),
+      weekly: t('codex.localAccess.quotaPool.weeklyShort', '周'),
+      title: t('codex.localAccess.quotaPool.title', '额度池'),
+    }),
+    [t],
+  );
   const selectedStatsWindow = useMemo<CodexLocalAccessStatsWindow | null>(() => {
     if (!stats) return null;
     return stats[statsRange];
   }, [stats, statsRange]);
   const selectedTotals = selectedStatsWindow?.totals;
   const routingStrategy = collection?.routingStrategy ?? 'auto';
+  const modelIdOptions = useMemo(
+    () => modelIds.map((modelId) => ({ value: modelId, label: modelId })),
+    [modelIds],
+  );
   const avgLatencyMs =
     selectedTotals && selectedTotals.requestCount > 0
       ? selectedTotals.totalLatencyMs / selectedTotals.requestCount
@@ -154,7 +227,7 @@ export function CodexLocalAccessModal({
     selectedTotals && selectedTotals.requestCount > 0
       ? Math.round((selectedTotals.successCount / selectedTotals.requestCount) * 100)
       : 0;
-  const actionBusy = saving || testing || starting;
+  const actionBusy = saving || testing || starting || portCleanupBusy;
   const summaryStats = useMemo(
     () => [
       {
@@ -206,6 +279,14 @@ export function CodexLocalAccessModal({
     () => accounts.filter((account) => !isCodexApiKeyAccount(account)),
     [accounts],
   );
+  const quotaPoolSummary = useMemo(
+    () => summarizeCodexQuotaPool(oauthAccounts),
+    [oauthAccounts],
+  );
+  const currentQuotaPoolSummary = useMemo(() => {
+    const accountIds = new Set(collection?.accountIds ?? []);
+    return summarizeCodexQuotaPool(oauthAccounts.filter((account) => accountIds.has(account.id)));
+  }, [collection?.accountIds, oauthAccounts]);
   const oauthAccountIdSet = useMemo(
     () => new Set(oauthAccounts.map((account) => account.id)),
     [oauthAccounts],
@@ -227,7 +308,6 @@ export function CodexLocalAccessModal({
     setNotice('');
     setKeyVisible(false);
     setCopiedField(null);
-    setStatsRange('daily');
     setPortInput(collection?.port ? String(collection.port) : '');
     if (mode === 'members') {
       window.setTimeout(() => {
@@ -235,6 +315,18 @@ export function CodexLocalAccessModal({
       }, 0);
     }
   }, [collection?.port, collection?.restrictFreeAccounts, isOpen, mode, normalizedInitialSelectedIds]);
+
+  useEffect(() => {
+    if (modelIds.length === 0) {
+      setSelectedModelId('');
+      return;
+    }
+    setSelectedModelId((current) => (modelIds.includes(current) ? current : modelIds[0]));
+  }, [modelIds]);
+
+  useEffect(() => {
+    persistStatsRange(statsRange);
+  }, [statsRange]);
 
   const normalizeTag = (value: string) => value.trim().toLowerCase();
 
@@ -290,7 +382,7 @@ export function CodexLocalAccessModal({
       if (!account.quota_error) {
         counts.VALID += 1;
       }
-      const tier = buildCodexAccountPresentation(account, t).planClass.toUpperCase();
+      const tier = getCodexPlanFilterKey(account);
       if (tier in counts) {
         counts[tier as keyof typeof counts] += 1;
       }
@@ -299,19 +391,70 @@ export function CodexLocalAccessModal({
       }
     });
     return counts;
-  }, [oauthAccounts, t]);
+  }, [oauthAccounts]);
+
+  const allTierFilterLabel = useMemo(
+    () =>
+      formatQuotaPoolLabel(
+        t('common.shared.filter.all', { count: tierCounts.all }),
+        quotaPoolSummary.all,
+        quotaPoolLabels.hourly,
+        quotaPoolLabels.weekly,
+      ),
+    [quotaPoolLabels.hourly, quotaPoolLabels.weekly, quotaPoolSummary.all, t, tierCounts.all],
+  );
 
   const tierFilterOptions = useMemo<MultiSelectFilterOption[]>(
     () => [
-      { value: 'FREE', label: `FREE (${tierCounts.FREE})` },
-      { value: 'PLUS', label: `PLUS (${tierCounts.PLUS})` },
-      { value: 'PRO', label: `PRO (${tierCounts.PRO})` },
-      { value: 'TEAM', label: `TEAM (${tierCounts.TEAM})` },
-      { value: 'ENTERPRISE', label: `ENTERPRISE (${tierCounts.ENTERPRISE})` },
+      {
+        value: 'FREE',
+        label: formatQuotaPoolLabel(
+          `FREE (${tierCounts.FREE})`,
+          quotaPoolSummary.byPlan.FREE,
+          quotaPoolLabels.hourly,
+          quotaPoolLabels.weekly,
+        ),
+      },
+      {
+        value: 'PLUS',
+        label: formatQuotaPoolLabel(
+          `PLUS (${tierCounts.PLUS})`,
+          quotaPoolSummary.byPlan.PLUS,
+          quotaPoolLabels.hourly,
+          quotaPoolLabels.weekly,
+        ),
+      },
+      {
+        value: 'PRO',
+        label: formatQuotaPoolLabel(
+          `PRO (${tierCounts.PRO})`,
+          quotaPoolSummary.byPlan.PRO,
+          quotaPoolLabels.hourly,
+          quotaPoolLabels.weekly,
+        ),
+      },
+      {
+        value: 'TEAM',
+        label: formatQuotaPoolLabel(
+          `TEAM (${tierCounts.TEAM})`,
+          quotaPoolSummary.byPlan.TEAM,
+          quotaPoolLabels.hourly,
+          quotaPoolLabels.weekly,
+        ),
+      },
+      {
+        value: 'ENTERPRISE',
+        label: formatQuotaPoolLabel(
+          `ENTERPRISE (${tierCounts.ENTERPRISE})`,
+          quotaPoolSummary.byPlan.ENTERPRISE,
+          quotaPoolLabels.hourly,
+          quotaPoolLabels.weekly,
+        ),
+      },
       { value: 'ERROR', label: `ERROR (${tierCounts.ERROR})` },
       buildValidAccountsFilterOption(t, tierCounts.VALID),
     ],
-    [t, tierCounts],
+    [quotaPoolLabels.hourly, quotaPoolLabels.weekly, quotaPoolSummary.byPlan, t, tierCounts],
   );
 
   const visibleAccounts = useMemo(() => {
@@ -352,7 +495,7 @@ export function CodexLocalAccessModal({
       }
 
       if (selectedTypes.size > 0) {
-        const planKey = presentation.planClass.toUpperCase();
+        const planKey = getCodexPlanFilterKey(account);
         const matchesType = Array.from(selectedTypes).some((type) => {
           if (type === 'ERROR') return Boolean(account.quota_error);
           return type === planKey;
@@ -458,6 +601,10 @@ export function CodexLocalAccessModal({
         value: 'plan_low_first',
         label: t('codex.localAccess.routingStrategy.planLowFirst', '优先低订阅'),
       },
+      {
+        value: 'expiry_soon_first',
+        label: t('codex.localAccess.routingStrategy.expirySoonFirst', '优先近到期'),
+      },
     ] satisfies Array<{ value: CodexLocalAccessRoutingStrategy; label: string }>,
     [t],
   );
@@ -477,7 +624,7 @@ export function CodexLocalAccessModal({
           <span
             key={line.key}
             className={`codex-local-access-quota-chip ${line.quotaClass}`}
-            title={line.text}
+            title={line.title}
           >
             <span className="codex-local-access-quota-dot" />
             <span>{line.text}</span>
@@ -492,7 +639,7 @@ export function CodexLocalAccessModal({
     [oauthAccounts],
   );
 
-  const handleCopy = async (field: 'baseUrl' | 'apiKey', value: string) => {
+  const handleCopy = async (field: CopyableField, value: string) => {
     try {
       await navigator.clipboard.writeText(value);
       setCopiedField(field);
@@ -654,6 +801,15 @@ export function CodexLocalAccessModal({
     }, t('codex.localAccess.clearStatsSuccess', 'API 服务统计已清空'));
   };
 
+  const handleKillPort = async () => {
+    await runAction(
+      async () => {
+        await onKillPort();
+      },
+      t('codex.localAccess.killPortSuccessUnknown', 'API 服务端口已清理'),
+    );
+  };
+
   const handleRefreshStats = async () => {
     setError('');
     setNotice('');
@@ -735,7 +891,7 @@ export function CodexLocalAccessModal({
                       : t('codex.localAccess.statusDisabled', '已停用')}
                   </span>
                   <span className="codex-local-access-subtle-badge">
-                    {t('codex.localAccess.memberOnlyLocal', '仅监听 127.0.0.1')}
+                    {t('codex.localAccess.memberOnlyLocal', '本机/局域网')}
                   </span>
                 </div>
                 <div className="codex-local-access-header-tools">
@@ -805,9 +961,24 @@ export function CodexLocalAccessModal({
 
         <div className="modal-body codex-local-access-modal-body">
           {state?.lastError && (
-            <div className="codex-local-access-inline-error">
+            <div className="codex-local-access-inline-error codex-local-access-inline-error-with-action">
               <CircleAlert size={14} />
               <span>{state.lastError}</span>
+              {collection && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm codex-local-access-inline-action"
+                  onClick={() => void handleKillPort()}
+                  disabled={actionBusy}
+                >
+                  {portCleanupBusy ? (
+                    <RefreshCw size={14} className="loading-spinner" />
+                  ) : (
+                    <Wrench size={14} />
+                  )}
+                  {t('codex.localAccess.killPortAction', '清理端口')}
+                </button>
+              )}
             </div>
           )}
 
@@ -879,6 +1050,26 @@ export function CodexLocalAccessModal({
                   </div>
                 ))}
               </div>
+              {currentQuotaPoolSummary.visiblePlans.length > 0 && (
+                <div
+                  className="codex-local-access-quota-pool-grid"
+                  aria-label={quotaPoolLabels.title}
+                >
+                  {currentQuotaPoolSummary.visiblePlans.map((item) => (
+                    <div key={item.key} className="codex-local-access-quota-pool-card">
+                      <span className="codex-local-access-quota-pool-plan">
+                        {item.key} ({item.count})
+                      </span>
+                      <span className="codex-local-access-quota-pool-value">
+                        {quotaPoolLabels.hourly} {formatCodexQuotaPoolPercent(item.hourly)}
+                      </span>
+                      <span className="codex-local-access-quota-pool-value">
+                        {quotaPoolLabels.weekly} {formatCodexQuotaPoolPercent(item.weekly)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </section>
           )}
 
@@ -893,22 +1084,31 @@ export function CodexLocalAccessModal({
                   <div className="codex-local-access-config-grid">
                     <div className="codex-local-access-config-card codex-local-access-config-card-base">
                       <div className="codex-local-access-config-head">
-                        <span className="codex-local-access-config-label">
-                          {t('codex.localAccess.baseUrl', '地址')}
-                        </span>
+                        <div className="codex-local-access-config-label codex-local-access-address-select">
+                          <SingleSelectDropdown
+                            value={addressKind}
+                            options={addressOptions}
+                            onChange={onAddressKindChange}
+                            menuClassName="codex-local-access-address-menu"
+                            menuWidth={92}
+                            menuMaxHeight={120}
+                            disabled={addressOptions.length < 2}
+                            ariaLabel={t('codex.localAccess.addressKind', '地址类型')}
+                          />
+                        </div>
                         <div className="codex-local-access-config-actions">
                           <button
                             type="button"
                             className="folder-icon-btn"
-                            onClick={() => void handleCopy('baseUrl', baseUrl)}
+                            onClick={() => void handleCopy('baseUrl', displayBaseUrl)}
                             title={t('common.copy', '复制')}
                           >
                             {copiedField === 'baseUrl' ? <Check size={14} /> : <Copy size={14} />}
                           </button>
                         </div>
                       </div>
-                      <code className="codex-local-access-code" title={baseUrl}>
-                        {baseUrl}
+                      <code className="codex-local-access-code" title={displayBaseUrl}>
+                        {displayBaseUrl}
                       </code>
                     </div>
 
@@ -944,7 +1144,11 @@ export function CodexLocalAccessModal({
                             onClick={() => void handleResetKey()}
                             disabled={saving || testing || starting}
                           >
-                            {saving ? <RefreshCw size={14} className="loading-spinner" /> : <RefreshCw size={14} />}
+                            {saving ? (
+                              <RefreshCw size={14} className="loading-spinner" />
+                            ) : (
+                              <RefreshCw size={14} />
+                            )}
                             {t('codex.localAccess.rotateKey', '重置密钥')}
                           </button>
                         </div>
@@ -958,7 +1162,10 @@ export function CodexLocalAccessModal({
 
                     <div className="codex-local-access-config-card codex-local-access-config-card-port codex-local-access-port-card">
                       <div className="codex-local-access-config-head">
-                        <label className="codex-local-access-config-label" htmlFor="codex-local-access-port">
+                        <label
+                          className="codex-local-access-config-label"
+                          htmlFor="codex-local-access-port"
+                        >
                           {t('codex.localAccess.portLabel', '服务端口')}
                         </label>
                         <div className="codex-local-access-config-actions">
@@ -968,7 +1175,11 @@ export function CodexLocalAccessModal({
                             onClick={() => void handleSavePort()}
                             disabled={saving || testing || starting}
                           >
-                            {saving ? <RefreshCw size={14} className="loading-spinner" /> : <Gauge size={14} />}
+                            {saving ? (
+                              <RefreshCw size={14} className="loading-spinner" />
+                            ) : (
+                              <Gauge size={14} />
+                            )}
                             {t('codex.localAccess.portSave', '保存端口')}
                           </button>
                         </div>
@@ -994,6 +1205,68 @@ export function CodexLocalAccessModal({
                     )}
                   </div>
                 )}
+                {collection || modelIdOptions.length > 0 ? (
+                  <div className="codex-local-access-config-extra-grid">
+                    {collection ? (
+                      <div className="codex-local-access-config-card codex-local-access-config-card-root">
+                        <div className="codex-local-access-config-head">
+                          <span className="codex-local-access-config-label">
+                            {t('codex.localAccess.apiPortUrl', 'API端口URL')}
+                          </span>
+                          <div className="codex-local-access-config-actions">
+                            <button
+                              type="button"
+                              className="folder-icon-btn"
+                              onClick={() => void handleCopy('apiPortUrl', apiPortUrl)}
+                              title={t('common.copy', '复制')}
+                            >
+                              {copiedField === 'apiPortUrl' ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        </div>
+                        <code className="codex-local-access-code" title={apiPortUrl}>
+                          {apiPortUrl}
+                        </code>
+                      </div>
+                    ) : null}
+
+                    {modelIdOptions.length > 0 ? (
+                      <div className="codex-local-access-config-card codex-local-access-config-card-model">
+                        <div className="codex-local-access-config-head">
+                          <span className="codex-local-access-config-label">
+                            {t('codex.localAccess.modelId', '模型 ID')}
+                          </span>
+                          <span className="codex-local-access-view-only-badge">
+                            {t('codex.localAccess.modelIdViewOnly', '仅查看使用，无切换功能')}
+                          </span>
+                          <div className="codex-local-access-config-actions">
+                            <button
+                              type="button"
+                              className="folder-icon-btn"
+                              onClick={() => void handleCopy('modelId', selectedModelId)}
+                              title={t('common.copy', '复制')}
+                              disabled={!selectedModelId}
+                            >
+                              {copiedField === 'modelId' ? <Check size={14} /> : <Copy size={14} />}
+                            </button>
+                          </div>
+                        </div>
+                        <div className="codex-local-access-model-row">
+                          <SingleSelectDropdown
+                            value={selectedModelId}
+                            options={modelIdOptions}
+                            onChange={setSelectedModelId}
+                            disabled={modelIdOptions.length === 0}
+                            ariaLabel={t('codex.localAccess.modelId', '模型 ID')}
+                            placeholder={t('codex.localAccess.modelIdPlaceholder', '选择模型 ID')}
+                            menuPlacement="up"
+                            menuMaxHeight={240}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
               </section>
 
               <section className="codex-local-access-section codex-local-access-section-surface codex-local-access-account-stats-section">
@@ -1093,7 +1366,7 @@ export function CodexLocalAccessModal({
                   <MultiSelectFilterDropdown
                     options={tierFilterOptions}
                     selectedValues={filterTypes}
-                    allLabel={t('common.shared.filter.all', { count: tierCounts.all })}
+                    allLabel={allTierFilterLabel}
                     filterLabel={t('common.shared.filterLabel', '筛选')}
                     clearLabel={t('accounts.clearFilter', '清空筛选')}
                     emptyLabel={t('common.none', '暂无')}

@@ -17,6 +17,8 @@ A **universal AI IDE account management tool**, currently supporting **Antigravi
 
 🇺🇸 English · 🇨🇳 简体中文 · 繁體中文 · 🇯🇵 日本語 · 🇩🇪 Deutsch · 🇪🇸 Español · 🇫🇷 Français · 🇮🇹 Italiano · 🇰🇷 한국어 · 🇧🇷 Português · 🇷🇺 Русский · 🇹🇷 Türkçe · 🇵🇱 Polski · 🇨🇿 Čeština · 🇸🇦 العربية · 🇻🇳 Tiếng Việt · 🇮🇩 Bahasa Indonesia
 
+**Officially supported platforms**: macOS, Windows, and Linux.
+
 ---
 
 ## Feature Overview
@@ -293,7 +295,7 @@ Go to [GitHub Releases](https://github.com/jlcodes99/cockpit-tools/releases) to 
 
 *   **macOS**: `.dmg` (Apple Silicon & Intel)
 *   **Windows**: `.msi` (Recommended) or `.exe`
-*   **Linux**: `.deb` (Debian/Ubuntu) or `.AppImage` (Universal)
+*   **Linux**: `.deb` (Debian/Ubuntu), `.rpm`, or `.AppImage` (Universal)
 
 ### Option B: Install with Homebrew (macOS)
 
@@ -321,18 +323,6 @@ Or force overwrite the existing app:
 
 ```bash
 brew install --cask --force cockpit-tools
-```
-
-### Option C: Arch Linux (AUR)
-
-Install via an AUR helper such as `yay` or `paru`:
-
-```bash
-# Source-built package
-yay -S cockpit-tools
-
-# Prebuilt binary package
-yay -S cockpit-tools-bin
 ```
 
 ### 🛠️ Troubleshooting

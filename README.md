@@ -9,11 +9,6 @@
 
 一款**通用的 AI IDE 账号管理工具**，目前支持 **Antigravity**、**Codex**、**GitHub Copilot**、**Windsurf**、**Kiro**、**Cursor**、**Gemini Cli**、**CodeBuddy**、**CodeBuddy CN**、**Qoder**、**Trae** 和 **Zed**，并支持多账号多实例并行运行。
 
-## 🧭 赞助商 (Sponsors)
-
-| 赞助商 (Sponsor) | 简介 (Description) |
-| :---: | :--- |
-| **🛒 [https://xiangzili.xyz](https://xiangzili.xyz)** | 作者自营买号地址，提供 Gemini Pro 成品号与 Codex Plus 兑换码；购买账号即送 Antigravity 无感切号方案。 |
 
 > 本工具旨在帮助用户高效管理多个 AI IDE 账号，支持一键切换、配额监控、自动唤醒与多开实例并行运行，助您充分利用不同账号的资源。
 
@@ -22,6 +17,8 @@
 **语言**：支持 18 种语言
 
 🇺🇸 English · 🇨🇳 简体中文 · 繁體中文 · 🇯🇵 日本語 · 🇩🇪 Deutsch · 🇪🇸 Español · 🇫🇷 Français · 🇮🇹 Italiano · 🇰🇷 한국어 · 🇧🇷 Português · 🇷🇺 Русский · 🇹🇷 Türkçe · 🇵🇱 Polski · 🇨🇿 Čeština · 🇸🇦 العربية · 🇻🇳 Tiếng Việt · 🇮🇩 Bahasa Indonesia
+
+**官方支持平台**：macOS、Windows、Linux。
 
 ---
 
@@ -295,7 +292,7 @@ Codex 同样支持多账号多实例并行运行。比如同时打开两个 Code
 
 *   **macOS**: `.dmg` (Apple Silicon & Intel)
 *   **Windows**: `.msi` (推荐) 或 `.exe`
-*   **Linux**: `.deb` (Debian/Ubuntu) 或 `.AppImage` (通用)
+*   **Linux**: `.deb` (Debian/Ubuntu)、`.rpm` 或 `.AppImage` (通用)
 
 ### 选项 B: Homebrew 安装 (macOS)
 
@@ -323,18 +320,6 @@ brew install --cask cockpit-tools
 
 ```bash
 brew install --cask --force cockpit-tools
-```
-
-### 选项 C: Arch Linux (AUR)
-
-可通过 AUR 助手（如 `yay` 或 `paru`）安装：
-
-```bash
-# 源码构建包
-yay -S cockpit-tools
-
-# 预编译二进制包
-yay -S cockpit-tools-bin
 ```
 
 ### 🛠️ 常见问题排查 (Troubleshooting)

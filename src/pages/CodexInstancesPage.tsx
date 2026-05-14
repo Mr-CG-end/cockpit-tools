@@ -6,7 +6,7 @@ import { SingleSelectDropdown } from "../components/SingleSelectDropdown";
 import { useLaunchTerminalOptions } from "../hooks/useLaunchTerminalOptions";
 import { useCodexInstanceStore } from "../stores/useCodexInstanceStore";
 import { useCodexAccountStore } from "../stores/useCodexAccountStore";
-import type { CodexAccount } from "../types/codex";
+import { isCodexApiKeyAccount, type CodexAccount } from "../types/codex";
 import {
   CODEX_API_SERVICE_BIND_ID,
   type InstanceProfile,
@@ -21,6 +21,10 @@ import {
   CODEX_CODE_REVIEW_QUOTA_VISIBILITY_CHANGED_EVENT,
   isCodexCodeReviewQuotaVisibleByDefault,
 } from "../utils/codexPreferences";
+import {
+  findCodexApiProviderPresetById,
+  resolveCodexApiProviderPresetId,
+} from "../utils/codexProviderPresets";
 
 /**
  * Codex 多开实例内容组件（不包含 header）
@@ -41,6 +45,12 @@ interface CodexLaunchModalState {
   executeError: string | null;
 }
 
+const OPENAI_OFFICIAL_PRESET_ID = "openai_official";
+
+function normalizeCodexApiBaseUrl(rawValue?: string | null): string {
+  return (rawValue || "").trim().replace(/\/+$/, "");
+}
+
 export function CodexInstancesContent({
   accountsForSelect,
 }: CodexInstancesContentProps = {}) {
@@ -48,7 +58,9 @@ export function CodexInstancesContent({
   const instanceStore = useCodexInstanceStore();
   const { accounts: storeAccounts, fetchAccounts } = useCodexAccountStore();
   const accounts = accountsForSelect ?? storeAccounts;
-  const isSupportedPlatform = usePlatformRuntimeSupport("macos-only");
+  const isMacOS = usePlatformRuntimeSupport("macos-only");
+  const isWindows = usePlatformRuntimeSupport("windows-only");
+  const isSupportedPlatform = isMacOS || isWindows;
   const [showCodeReviewQuota, setShowCodeReviewQuota] = useState<boolean>(
     isCodexCodeReviewQuotaVisibleByDefault,
   );
@@ -99,6 +111,31 @@ export function CodexInstancesContent({
     [accounts, t],
   );
 
+  const resolveApiProviderDisplayName = (account: CodexAccount): string => {
+    const baseUrl = normalizeCodexApiBaseUrl(account.api_base_url);
+    const isOpenAiBuiltin =
+      account.api_provider_mode === "openai_builtin" ||
+      (!account.api_provider_mode &&
+        (!baseUrl || baseUrl === "https://api.openai.com/v1"));
+    if (isOpenAiBuiltin) {
+      const preset = findCodexApiProviderPresetById(OPENAI_OFFICIAL_PRESET_ID);
+      return preset
+        ? t(`codex.api.providers.${preset.id}.name`, preset.name)
+        : t("codex.api.provider.custom", "自定义");
+    }
+
+    const providerName = account.api_provider_name?.trim();
+    if (providerName) return providerName;
+
+    const preset = findCodexApiProviderPresetById(
+      resolveCodexApiProviderPresetId(baseUrl),
+    );
+    if (preset) {
+      return t(`codex.api.providers.${preset.id}.name`, preset.name);
+    }
+    return t("codex.api.provider.custom", "自定义");
+  };
+
   const accountMap = useMemo(() => {
     const map = new Map<string, CodexAccount>();
     accounts.forEach((account) => map.set(account.id, account));
@@ -106,6 +143,24 @@ export function CodexInstancesContent({
   }, [accounts]);
 
   const renderCodexQuotaPreview = (account: CodexAccount) => {
+    if (isCodexApiKeyAccount(account)) {
+      const providerName = resolveApiProviderDisplayName(account);
+      const text = t("codex.api.provider.inlineLabel", {
+        provider: providerName,
+        defaultValue: "供应商：{{provider}}",
+      });
+      return (
+        <div className="account-quota-preview">
+          <span className="account-quota-item account-provider-item">
+            <span className="quota-dot" />
+            <span className="quota-text account-provider-text" title={text}>
+              {text}
+            </span>
+          </span>
+        </div>
+      );
+    }
+
     const presentation = resolvePresentation(account);
     const lines = buildQuotaPreviewLines(presentation.quotaItems, 3);
     if (lines.length === 0) {
@@ -241,14 +296,17 @@ export function CodexInstancesContent({
           renderAccountBadge={renderCodexPlanBadge}
           getAccountSearchText={(account) => {
             const presentation = resolvePresentation(account);
-            return `${presentation.displayName} ${presentation.planLabel}`;
+            const providerText = isCodexApiKeyAccount(account)
+              ? resolveApiProviderDisplayName(account)
+              : "";
+            return `${presentation.displayName} ${presentation.planLabel} ${providerText}`;
           }}
           appType="codex"
           isSupported={isSupportedPlatform}
           unsupportedTitleKey="common.shared.instances.unsupported.title"
           unsupportedTitleDefault="暂不支持当前系统"
           unsupportedDescKey="codex.instances.unsupported.desc"
-          unsupportedDescDefault="Codex 多开实例仅支持 macOS。"
+          unsupportedDescDefault="Codex 多开实例仅支持 macOS 和 Windows。"
           onInstanceStarted={handleInstanceStarted}
           resolveStartSuccessMessage={(instance) =>
             (instance.launchMode ?? "app") === "cli"

@@ -15,7 +15,8 @@ use url::Url;
 const CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTH_ENDPOINT: &str = "https://auth.openai.com/oauth/authorize";
 const TOKEN_ENDPOINT: &str = "https://auth.openai.com/oauth/token";
-const SCOPES: &str = "openid profile email offline_access";
+const SCOPES: &str =
+    "openid profile email offline_access api.connectors.read api.connectors.invoke";
 const ORIGINATOR: &str = "codex_vscode";
 const OAUTH_CALLBACK_PORT: u16 = 1455;
 const OAUTH_PORT_IN_USE_CODE: &str = "CODEX_OAUTH_PORT_IN_USE";
@@ -80,6 +81,21 @@ fn generate_code_challenge(code_verifier: &str) -> String {
 
 fn now_timestamp() -> i64 {
     chrono::Utc::now().timestamp()
+}
+
+fn extract_token_error_code(body: &str) -> Option<String> {
+    let value: serde_json::Value = serde_json::from_str(body).ok()?;
+    value
+        .get("error")
+        .and_then(|item| item.as_str())
+        .or_else(|| {
+            value
+                .get("error")
+                .and_then(|item| item.get("code"))
+                .and_then(|item| item.as_str())
+        })
+        .or_else(|| value.get("code").and_then(|item| item.as_str()))
+        .map(|item| item.to_string())
 }
 
 fn load_pending_state_from_disk() -> Option<OAuthState> {
@@ -790,8 +806,8 @@ pub fn restore_pending_oauth_listener(app_handle: AppHandle) {
     }
 }
 
-pub fn is_token_expired(access_token: &str) -> bool {
-    let parts: Vec<&str> = access_token.split('.').collect();
+pub fn is_jwt_token_expired(token: &str) -> bool {
+    let parts: Vec<&str> = token.split('.').collect();
     if parts.len() != 3 {
         return true;
     }
@@ -821,6 +837,10 @@ pub fn is_token_expired(access_token: &str) -> bool {
     exp < now + TOKEN_REFRESH_SKEW_SECONDS
 }
 
+pub fn is_token_expired(access_token: &str) -> bool {
+    is_jwt_token_expired(access_token)
+}
+
 pub async fn refresh_access_token(refresh_token: &str) -> Result<CodexTokens, String> {
     refresh_access_token_with_fallback(refresh_token, None).await
 }
@@ -831,17 +851,15 @@ pub async fn refresh_access_token_with_fallback(
 ) -> Result<CodexTokens, String> {
     let client = reqwest::Client::new();
 
-    let params = [
-        ("grant_type", "refresh_token"),
-        ("refresh_token", refresh_token),
-        ("client_id", CLIENT_ID),
-    ];
-
     logger::log_info("Codex Token 刷新中...");
 
     let response = client
         .post(TOKEN_ENDPOINT)
-        .form(&params)
+        .json(&serde_json::json!({
+            "client_id": CLIENT_ID,
+            "grant_type": "refresh_token",
+            "refresh_token": refresh_token,
+        }))
         .send()
         .await
         .map_err(|e| format!("Token 刷新请求失败: {}", e))?;
@@ -853,16 +871,19 @@ pub async fn refresh_access_token_with_fallback(
         .map_err(|e| format!("读取响应失败: {}", e))?;
 
     if !status.is_success() {
+        let error_code = extract_token_error_code(&body);
         logger::log_error(&format!(
-            "Token 刷新失败: status={}, body_len={}",
+            "Token 刷新失败: status={}, error_code={:?}, body_len={}",
             status,
+            error_code,
             body.len()
         ));
-        return Err(format!(
-            "Token 刷新失败: status={}, body_len={}",
-            status,
-            body.len()
-        ));
+        let mut message = format!("Token 刷新失败: status={}", status);
+        if let Some(code) = error_code {
+            message.push_str(&format!(", error_code={}", code));
+        }
+        message.push_str(&format!(", body_len={}", body.len()));
+        return Err(message);
     }
 
     logger::log_info("Codex Token 刷新成功");

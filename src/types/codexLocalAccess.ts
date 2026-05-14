@@ -1,9 +1,12 @@
+export type CodexLocalAccessAddressKind = 'local' | 'lan';
+
 export type CodexLocalAccessRoutingStrategy =
   | 'auto'
   | 'quota_high_first'
   | 'quota_low_first'
   | 'plan_high_first'
-  | 'plan_low_first';
+  | 'plan_low_first'
+  | 'expiry_soon_first';
 
 export interface CodexLocalAccessCollection {
   enabled: boolean;
@@ -55,8 +58,16 @@ export interface CodexLocalAccessStats {
 export interface CodexLocalAccessState {
   collection: CodexLocalAccessCollection | null;
   running: boolean;
+  apiPortUrl: string | null;
   baseUrl: string | null;
+  lanBaseUrl: string | null;
+  modelIds: string[];
   lastError: string | null;
   memberCount: number;
   stats: CodexLocalAccessStats;
+}
+
+export interface CodexLocalAccessPortCleanupResult {
+  killedCount: number;
+  state: CodexLocalAccessState;
 }

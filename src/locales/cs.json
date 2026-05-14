@@ -70,6 +70,40 @@
           "statusPending": "Čeká na import"
         }
       },
+      "externalImport": {
+        "bundleInvalidJson": "Importní balíček není platný JSON",
+        "bundleEmpty": "Importní balíček je prázdný",
+        "bundleProviderMismatch": "Poskytovatel importního balíčku neodpovídá",
+        "bundleNoItems": "Importní balíček neobsahuje položky k importu",
+        "titleCodex": "Hromadný import Codex",
+        "statusReceiving": "Přijímá se požadavek na import...",
+        "statusFetching": "Načítá se importní balíček...",
+        "statusParsing": "Analyzuje se obsah importu Codex...",
+        "statusImporting": "Importuje se účet {{current}} / {{total}}",
+        "statusRefreshing": "Obnovuje se seznam účtů...",
+        "statusActivating": "Přepíná se na importovaný účet...",
+        "statusSuccess": "Import dokončen",
+        "statusPartial": "Částečně importováno",
+        "statusFailed": "Import se nezdařil",
+        "total": "Celkem",
+        "success": "Úspěšně",
+        "failed": "Selhalo",
+        "stepReceive": "Přijmout požadavek",
+        "stepFetch": "Načíst balíček",
+        "stepParse": "Analyzovat obsah",
+        "stepImport": "Importovat účty",
+        "stepRefresh": "Obnovit seznam",
+        "errorsTitle": "Neúspěšné položky",
+        "viewAccounts": "Zobrazit účty Codex",
+        "copyErrors": "Kopírovat chyby",
+        "copied": "Zkopírováno",
+        "unknownItem": "Položka č. {{index}}",
+        "versionUnsupportedTitle": "Verze aplikace je příliš nízká",
+        "versionUnsupportedDesc": "Tento způsob zatím není podporován. Stáhněte si nejnovější verzi.",
+        "checkUpdate": "Zkontrolovat aktualizace",
+        "rawLineNoRefreshToken": "Řádek {{line}} neobsahuje refresh_token",
+        "rawLineMultipleRefreshTokens": "Řádek {{line}} obsahuje více refresh_token. Ponechte jen jeden."
+      },
       "instances": {
         "unsupported": {
           "title": "Na tomto systému nepodporováno"
@@ -107,7 +141,10 @@
         "descTooltip": "Sestupně (kliknutím přepnete na vzestupně)",
         "toggleDirection": "Přepnout směr",
         "credits": "Zbývajícími kredity",
-        "planEnd": "Podle času konce cyklu"
+        "planEnd": "Podle času konce cyklu",
+        "recommended": "Doporučeno",
+        "recommendedAscTooltip": "Doporučeno (nejméně výhodné první)",
+        "recommendedDescTooltip": "Doporučeno (nejvýhodnější první)"
       },
       "sortLabel": "Seřadit",
       "token": {
@@ -227,14 +264,14 @@
     "title": "Rozložení platforem",
     "sidebarSelected": "Vybráno v postranním panelu {{count}}/{{max}}",
     "reset": "Obnovit výchozí",
-    "tip": "Přetažením změňte pořadí. V postranním panelu lze zobrazit nejvýše dvě platformy. Pokud je vybrána jen jedna, zobrazí se pouze jedna.",
+    "tip": "Přetažením změňte pořadí. V postranním panelu lze zobrazit nejvýše tři platformy. Pokud je vybrána jen jedna, zobrazí se pouze jedna.",
     "sidebarToggle": "Zobrazit v postranním panelu",
     "dashboardToggle": "Zobrazit na nástěnce",
     "trayToggle": "Zobrazit v systémové liště",
     "hiddenBadge": "Skryto",
     "openFromMore": "Spravovat rozložení platforem",
     "dragHandleLabel": "Přetažením změnit pořadí",
-    "tipWithGroups": "Přetažením změňte pořadí. V postranním panelu mohou být nejvýše dvě položky. Podřízené platformy skupiny nelze zobrazit v postranním panelu/přehledu; slouží jen pro lištu a přepnutí výchozí platformy.",
+    "tipWithGroups": "Přetažením změňte pořadí. V postranním panelu mohou být nejvýše tři položky. Podřízené platformy skupiny nelze zobrazit v postranním panelu/přehledu; slouží jen pro lištu a přepnutí výchozí platformy.",
     "addGroup": "Přidat skupinu",
     "editGroup": "Upravit skupinu",
     "deleteGroup": "Smazat skupinu",
@@ -328,7 +365,8 @@
       "instance": "Instance",
       "email": "Účet",
       "quota": "Stav kvóty",
-      "actions": "Akce"
+      "actions": "Akce",
+      "speed": "Rychlost"
     },
     "empty": {
       "title": "Žádné instance",
@@ -406,7 +444,9 @@
           "contextWindowInvalid": "Kontextové okno musí být celé číslo větší než 0.",
           "autoCompactInvalid": "Limit automatického zhutnění musí být celé číslo větší než 0."
         }
-      }
+      },
+      "appSpeed": "Rychlost",
+      "appSpeedDesc": "Zapíše zvolenou rychlost před spuštěním oficiálního Codexu"
     },
     "quota": {
       "unbound": "Účet není propojen",
@@ -427,7 +467,8 @@
       "allAlreadyRunning": "Všechny instance již běží",
       "noneRunning": "Nebyly nalezeny žádné běžící instance",
       "syncThreadsNeedTwo": "Pro synchronizaci vláken jsou potřeba alespoň dvě instance",
-      "launchPrepared": "Příkaz ke spuštění je připraven"
+      "launchPrepared": "Příkaz ke spuštění je připraven",
+      "speedUpdated": "Rychlost aktualizována"
     },
     "runningDialog": {
       "title": "Instance již běží",
@@ -698,7 +739,20 @@
       "codexLocalAccessEntryVisibleDesc": "Určuje pouze, zda se v přehledu Codex zobrazuje položka služby API. Místní službu API to nezastaví; můžete ji znovu zapnout zde nebo v rychlém nastavení.",
       "codexLocalAccessEnabled": "Zapnout službu API",
       "codexLocalAccessEnabledDesc": "Určuje, zda místní služba Codex API skutečně běží.",
-      "codexLocalAccessEnabledRequiresCollection": "Před zapnutím nebo vypnutím služby nejprve přidejte účty do kolekce služby API."
+      "codexLocalAccessEnabledRequiresCollection": "Před zapnutím nebo vypnutím služby nejprve přidejte účty do kolekce služby API.",
+      "codexRestartSpecifiedAppOnSwitch": "Při přepnutí Codex restartovat zadanou aplikaci",
+      "codexRestartSpecifiedAppOnSwitchDesc": "Po zapnutí restartuje aplikaci na níže uvedené cestě (pro workflow s hostitelem pluginů).",
+      "codexSpecifiedAppPath": "Cesta k zadané aplikaci",
+      "codexSpecifiedAppPathDesc": "Cesta k aplikaci, která se restartuje spolu s přepnutím Codex.",
+      "codexSpecifiedAppPathPlaceholder": "Např. /Applications/Host.app",
+      "codexSpecifiedAppPathClear": "Vymazat",
+      "codexAppSpeed": "Rychlost Codexu",
+      "codexAppSpeedDesc": "Uloží oficiální rychlost spuštění Codexu a zapíše ji před každým spuštěním z této aplikace.",
+      "codexAppSpeedStandard": "Standardní",
+      "codexAppSpeedFast": "Rychlá",
+      "codexAppSpeedLaunch": "Restartovat Codex",
+      "codexAppSpeedSaveFailed": "Nepodařilo se uložit rychlost Codexu: {{error}}",
+      "codexAppSpeedLaunchFailed": "Nepodařilo se restartovat Codex: {{error}}"
     },
     "network": {
       "apiTitle": "Antigravity Cockpit API",
@@ -817,11 +871,23 @@
           "saveSettingsFailed": "Uložení nastavení záloh selhalo: {{error}}",
           "cleanupDone": "Bylo vyčištěno {{count}} starých záloh",
           "cleanupFailed": "Vyčištění starých záloh selhalo: {{error}}",
-          "openFolderFailed": "Otevření složky se zálohami selhalo: {{error}}"
+          "openFolderFailed": "Otevření složky se zálohami selhalo: {{error}}",
+          "downloadSuccess": "Záloha stažena do {{path}}",
+          "downloadFailed": "Stažení zálohy selhalo: {{error}}"
         },
         "errors": {
           "invalidRetention": "Doba uchování musí být mezi 1 a 365 dny"
-        }
+        },
+        "platformFilterLabel": "Platforma",
+        "platformFilterAll": "Všechny platformy",
+        "platformEmptyTitle": "Žádné odpovídající zálohy",
+        "platformEmptyDesc": "Tato platforma nemá stažitelnou zálohu účtů.",
+        "archiveTag": "Archiv",
+        "archiveSize": "Archiv: {{size}}",
+        "platformsTitle": "Účty platformy",
+        "platformDownloadAction": "Stáhnout JSON platformy",
+        "downloadJsonAction": "Soubor JSON",
+        "downloadZipAction": "Archiv ZIP"
       },
       "exportTitle": "Export dat",
       "exportDesc": "Podle potřeby exportujte data účtů, konfigurační data nebo celý migrační balíček.",
@@ -1539,6 +1605,7 @@
     "authorizing": "Čeká se na autorizaci systému...",
     "installFailed": "Instalace do systému selhala. Zkuste to později nebo stáhněte balíček ručně.",
     "restartRequiredAfterInstall": "Aktualizace je nainstalována. Dokončete přepnutí ručním restartem aplikace.",
+    "stoppingApiService": "Zastavuji službu API...",
     "skipThisVersion": "Přeskočit tuto verzi",
     "skipFailed": "Tuto aktualizaci se nepodařilo přeskočit: {{error}}"
   },
@@ -1560,6 +1627,13 @@
   },
   "codex": {
     "title": "Správa účtů Codex",
+    "newApi": {
+      "quota": {
+        "available": "Kvóta",
+        "unlimited": "Neomezeně",
+        "usedHint": "Využito {{used}}"
+      }
+    },
     "subtitle": "Spravujte své účty OpenAI Codex",
     "instances": {
       "subtitle": "Nezávislá konfigurace pro každou instanci, paralelní provoz s více účty.",
@@ -1592,6 +1666,14 @@
     "switch": "Přepnout",
     "switched": "Přepnuto na {{email}}",
     "switchFailed": "Přepnutí se nezdařilo: {{error}}",
+    "authError": {
+      "badge": "Problém s autorizací",
+      "refreshTokenReused": "Autorizace Codexu je neplatná: refresh_token už použil jiný klient nebo instance. Přihlaste se znovu a neobnovujte stejný účet současně z oficiálního Codexu, jiných instancí nebo externích nástrojů.",
+      "refreshTokenExpired": "Autorizace přihlášení do Codexu vypršela a nelze ji automaticky obnovit. Přihlaste se k účtu Codex znovu.",
+      "refreshTokenInvalidated": "Autorizace přihlášení do Codexu byla službou zrušena a nelze ji automaticky obnovit. Přihlaste se k účtu Codex znovu.",
+      "invalidGrant": "Autorizace přihlášení do Codexu je neplatná a nelze ji automaticky obnovit. Přihlaste se k účtu Codex znovu.",
+      "unsupportedCountryRegion": "Aktuální síťová oblast nepodporuje obnovení autorizace Codexu. Autorizační služba OpenAI odmítla tento síťový výstup. Přepněte na podporovanou oblast a zkuste to znovu."
+    },
     "current": "Aktuální",
     "empty": {
       "description": "Klikněte na „Přidat účet“"
@@ -1616,25 +1698,37 @@
       "timeoutRetry": "Aktualizovat odkaz pro ověření"
     },
     "token": {
-      "desc": "Vložte obsah auth.json nebo JSON dat účtu",
-      "placeholder": "Příklad: {\"tokens\":{\"id_token\":\"eyJ...\",\"access_token\":\"eyJ...\"}}"
+      "desc": "Vložte auth.json, JSON účtu nebo refresh_token.",
+      "placeholder": "Příklad: jeden refresh_token na řádek nebo {\"refresh_token\":\"rt_...\"}",
+      "formatSummary": "Povinná pole a příklady",
+      "formatRequired": "Podporuje úplné tokens (id_token + access_token), jeden refresh_token nebo jeden refresh_token na řádek. Import pouze s refresh_token jej nejprve online vymění za úplné přihlašovací údaje.",
+      "formatSingleLabel": "Úplné tokens",
+      "formatRefreshOnlyLabel": "Jen refresh_token",
+      "formatBatchLabel": "Dávkový příklad"
     },
     "exportFormat": {
       "label": "Formát exportu",
       "cockpitTools": "Cockpit Tools",
       "sub2api": "sub2api formát",
-      "cpa": "cpa formát"
+      "cpa": "cpa formát",
+      "downloadAll": "Stáhnout vše",
+      "cpaCardTitle": "Účet {{index}}",
+      "savedFolder": "Uložená složka",
+      "savedPath": "Uložená cesta"
     },
     "localAccess": {
       "title": "API služba",
       "accountCount": "{{count}} účtů",
       "baseUrl": "Adresa",
+      "addressKind": "Typ adresy",
+      "addressLocal": "Místní",
+      "addressLan": "Místní síť",
       "apiKey": "Klíč",
       "statusRunning": "Běží",
       "statusStopped": "Zastaveno",
       "statusDisabled": "Vypnuto",
       "emptyMembers": "Ve skupině zatím nejsou žádné účty",
-      "footerHint": "Naslouchá jen na 127.0.0.1",
+      "footerHint": "Naslouchá místně i v LAN",
       "manageAccounts": "Spravovat účty",
       "rotateKey": "Obnovit klíč",
       "rotateConfirmMessage": "Po resetu přestane aktuální klíč API služby okamžitě fungovat a probíhající požadavky mohou být nedostupné. Pokračovat?",
@@ -1662,7 +1756,8 @@
         "freeNoticeRestricted": "Free účty jsou omezené. Vypněte tuto volbu, chcete-li je vybrat.",
         "freeNoticeUnstable": "Proxy pro Free účty může být nestabilní. Používejte opatrně.",
         "restrictFreeDisableConfirmTitle": "Povolit Free účty",
-        "restrictFreeDisableConfirmMessage": "Proxy pro Free účty může být nestabilní. Opravdu je chcete použít?"
+        "restrictFreeDisableConfirmMessage": "Proxy pro Free účty může být nestabilní. Opravdu je chcete použít?",
+        "manageMembers": "Spravovat členy"
       },
       "entryAction": "Přidat do API služby",
       "testAction": "Otestovat API službu",
@@ -1673,7 +1768,7 @@
       "activateSuccess": "Přepnuto na API službu",
       "dashboardAction": "Panel služby",
       "manageDesc": "Na jednom místě spravujte statistiky služby API, členy, port, klíč i test připojení.",
-      "memberOnlyLocal": "Jen Codex",
+      "memberOnlyLocal": "Místně/LAN",
       "configTitle": "Nastavení služby",
       "configEmpty": "Nejprve uložte alespoň jeden účet do kolekce API služby, pak se vygeneruje adresa, klíč a port.",
       "portLabel": "Port služby",
@@ -1683,8 +1778,8 @@
       "statsTitle": "Souhrn",
       "accountStatsTitle": "Podle účtu",
       "statsEmpty": "Zatím žádné statistiky",
-      "summaryMeta": "{{count}} účtů · Jen Codex",
-      "summaryMetaUnconfigured": "Nenastaveno · Jen Codex",
+      "summaryMeta": "{{count}} účtů · Místně/LAN",
+      "summaryMetaUnconfigured": "Nenastaveno · Místně/LAN",
       "memberTitle": "Členové kolekce",
       "stats": {
         "requests": "Požadavky",
@@ -1707,9 +1802,16 @@
       "routingDescriptionQuotaLowFirst": "Upřednostní účty s nižší zbývající kvótou.",
       "routingDescriptionPlanHighFirst": "Upřednostní účty ve vyšších tarifech.",
       "routingDescriptionPlanLowFirst": "Upřednostní účty v nižších tarifech.",
+      "routingDescriptionExpirySoonFirst": "Upřednostní účty, jejichž předplatné končí dříve.",
       "clearStats": "Vymazat statistiky",
       "clearStatsConfirm": "Vymazat všechny statistiky služby API?",
       "clearStatsSuccess": "Statistiky služby API byly vymazány",
+      "killPortAction": "Vyčistit port",
+      "killPortTitle": "Vyčistit port služby API",
+      "killPortConfirmMessage": "Tím se vynuceně ukončí ostatní procesy používající místní port {{port}} a poté se služba API znovu spustí. Pokračovat?",
+      "killPortSuccess": "Port byl vyčištěn (ukončeno {{count}} procesů)",
+      "killPortSuccessNone": "Port byl zkontrolován. Nepoužívá ho žádný externí proces.",
+      "killPortSuccessUnknown": "Port služby API byl vyčištěn",
       "refreshStats": "Obnovit statistiky",
       "refreshStatsSuccess": "Statistiky služby API byly obnoveny",
       "routingStrategy": {
@@ -1717,7 +1819,8 @@
         "quotaHighFirst": "Nejvyšší kvóta napřed",
         "quotaLowFirst": "Nejnižší kvóta napřed",
         "planHighFirst": "Nejvyšší tarif napřed",
-        "planLowFirst": "Nejnižší tarif napřed"
+        "planLowFirst": "Nejnižší tarif napřed",
+        "expirySoonFirst": "Brzy končící první"
       },
       "statusUnconfigured": "Nenastaveno",
       "expandDetails": "Rozbalit detail",
@@ -1743,7 +1846,19 @@
       },
       "enableBeforeActivateTitle": "Služba není zapnutá",
       "enableBeforeActivateMessage": "Služba API je momentálně vypnutá a je potřeba ji nejdříve zapnout. Zapnout a přepnout nyní?",
-      "enableAndActivateAction": "Zapnout a přepnout"
+      "enableAndActivateAction": "Zapnout a přepnout",
+      "apiPortUrl": "URL portu API",
+      "modelId": "ID modelu",
+      "modelIdPlaceholder": "Vyberte ID modelu",
+      "modelIdViewOnly": "Pouze zobrazení",
+      "quotaPool": {
+        "title": "Fond kvóty",
+        "hourlyShort": "5h",
+        "weeklyShort": "Týden",
+        "viewFull": "Zobrazit úplné statistiky",
+        "modalTitle": "Fond kvóty služby API",
+        "empty": "Zatím žádné statistiky kvóty"
+      }
     },
     "local": {
       "desc": "Importovat aktuální účet z ~/.codex/auth.json",
@@ -1757,13 +1872,15 @@
     "quota": {
       "hourly": "Kvóta 5 hodin",
       "weekly": "Týdenní kvóta",
-      "reset": "Reset"
+      "reset": "Reset",
+      "weeklyBlocksHourly": "Týdenní kvóta je 0, proto není 5hodinová kvóta dostupná"
     },
     "quotaError": {
       "badge": "Chyba kvóty",
+      "refreshFailedBadge": "Obnovení selhalo",
       "generic": "Obnovení kvóty se nezdařilo, zkuste to prosím později",
       "deactivatedWorkspace": "Pracovní prostor je deaktivovaný, přepněte účet nebo znovu autorizujte",
-      "requestFailedManualRetry": "Požadavek selhal, zkuste to prosím znovu ručně: {{error}}"
+      "requestFailedManualRetry": "Zkontrolujte síť. Nejnovější kvóta nebyla načtena. Obnovte a zkuste to znovu."
     },
     "plan": {
       "free": "FREE",
@@ -1791,7 +1908,15 @@
       "weekly": "Týdenní kvóta",
       "hourly": "5hodinová kvóta",
       "weeklyReset": "Čas týdenního resetu",
-      "hourlyReset": "Čas resetu 5 hodin"
+      "hourlyReset": "Čas resetu 5 hodin",
+      "subscriptionExpiry": "Konec předplatného",
+      "custom": "Vlastní pořadí",
+      "customModalTitle": "Vlastní pořadí účtů",
+      "customModalDesc": "Přetažením účtů nebo tlačítky nahoru/dolů upravte pořadí zobrazení.",
+      "customDragHandle": "Přetáhnout",
+      "customMoveUp": "Nahoru",
+      "customMoveDown": "Dolů",
+      "customReset": "Reset pořadí"
     },
     "opencodeSwitch": "Přepínač OpenCode",
     "opencodeSwitchDesc": "Synchronizovat přepnutí účtu Codex v OpenCode",
@@ -2003,7 +2128,8 @@
         "collapse": "Sbalit",
         "repairVisibility": "Opravit viditelnost",
         "restoreSessions": "Obnovit relace",
-        "copySessionId": "Kopírovat ID relace"
+        "copySessionId": "Kopírovat ID relace",
+        "copyToInstance": "Kopírovat do instance"
       },
       "confirm": {
         "title": "Přesunout do koše",
@@ -2018,7 +2144,9 @@
       "messages": {
         "pickOne": "Vyberte prosím alespoň jednu relaci",
         "syncNeedTwo": "Pro synchronizaci relací jsou potřeba alespoň dvě instance",
-        "pickRestoreOne": "Vyberte prosím alespoň jednu relaci k obnovení"
+        "pickRestoreOne": "Vyberte prosím alespoň jednu relaci k obnovení",
+        "repairVisibilitySkippedOnly": "Nebyly nalezeny žádné zapisovatelné rozdíly provideru; přeskočeno {{count}} neplatných nebo poškozených souborů state_5.sqlite. Codex je musí znovu vygenerovat, než bude možné opravit jejich záznamy SQLite.",
+        "repairVisibilitySkippedWithBase": "{{message}}; přeskočeno {{count}} neplatných nebo poškozených souborů state_5.sqlite. Codex je musí znovu vygenerovat, než bude možné opravit jejich záznamy SQLite."
       },
       "groupCount": "{{count}} relací",
       "updatedAt": "Aktualizováno",
@@ -2034,6 +2162,15 @@
         "emptyTitle": "Koš je prázdný",
         "emptyDesc": "Relace přesunuté do koše se zobrazí zde.",
         "restoreAction": "Obnovit vybrané relace"
+      },
+      "targetModal": {
+        "title": "Kopírovat do instance",
+        "hint": "Zkopíruje vybrané relace do cílové instance. Relace se stejným ID, které už tam jsou, se přeskočí. Běžící cílové instance mohou vyžadovat restart, než se zobrazí.",
+        "targetInstance": "Cílová instance",
+        "pickTarget": "Vyberte cílovou instanci",
+        "selectedCount": "Vybráno relací: {{count}}",
+        "existingCount": "V cíli už existuje: {{count}}",
+        "confirm": "Kopírovat relace"
       }
     },
     "api": {
@@ -2045,16 +2182,21 @@
         "apiKeyEqualsBaseUrl": "Klíč API nemůže být stejný jako základní URL."
       },
       "addAndSwitchSuccess": "Přidáno a přepnuto: {{email}}",
+      "showApiKey": "Zobrazit API Key",
+      "hideApiKey": "Skrýt API Key",
+      "apiKeyHiddenHint": "API Key je skrytý. Kliknutím zobrazíte.",
       "actions": {
         "addAndSwitch": "Přidat a přepnout"
       },
       "provider": {
         "label": "Poskytovatel",
+        "inlineLabel": "Poskytovatel: {{provider}}",
         "custom": "Vlastní",
         "endpoint": "Koncový bod poskytovatele",
         "hint": "Kompatibilní Base URL byla vyplněna automaticky. Stále ji můžete upravit ručně.",
         "website": "Web",
-        "apiKeyPage": "Stránka API klíče"
+        "apiKeyPage": "Stránka API klíče",
+        "getApiKey": "Získat klíč"
       },
       "providers": {
         "openai_official": {
@@ -2116,6 +2258,9 @@
         },
         "siliconflow": {
           "name": "SiliconFlow"
+        },
+        "cockpit_api": {
+          "name": "Cockpit Api"
         }
       }
     },
@@ -2213,7 +2358,8 @@
         "contextWindowHint": "Zapíše model_context_window. Upravitelné pouze v uživatelském režimu.",
         "partialDetected": "Aktuálně je nastaveno pouze jedno spravované pole: model_context_window={{context}}, model_auto_compact_token_limit={{compact}}. Uložením se přepíší obě pole podle aktuálního schématu.",
         "notSet": "Nenastaveno"
-      }
+      },
+      "managePresets": "Předvolby modelů"
     },
     "quickSwitch": {
       "action": "Rychle přepnout poskytovatele",
@@ -2234,6 +2380,71 @@
     },
     "groups": {
       "addToGroup": "Přidat do skupiny"
+    },
+    "subscription": {
+      "label": "Konec předpl.",
+      "column": "Konec",
+      "unknown": "Ověřit znovu",
+      "missingDetail": "Ověřit znovu pro načtení",
+      "expired": "Vypršelo",
+      "hoursLeft": "{{count}} h",
+      "daysLeft": "{{count}} d",
+      "over99Days": "99+ d",
+      "titleWithDate": "Předplatné končí: {{date}}",
+      "titleUnknown": "Ověřte znovu pro načtení konce předplatného",
+      "filterLabel": "Filtr konce",
+      "filterAll": "Vše ({{count}})",
+      "filterExpired": "Vypršela ({{count}})",
+      "filterWithin24h": "24 h ({{count}})",
+      "filterWithin7d": "7 d ({{count}})",
+      "filterWithin30d": "30 d ({{count}})",
+      "filterMissing": "Neznámé ({{count}})"
+    },
+    "apiSwitchNotice": {
+      "title": "Relace Codexu jsou skryté",
+      "message": "Bylo zjištěno, že Codex přešel z {{from}} na {{to}}. Kvůli oficiálnímu chování se existující relace po přímém přepnutí mezi API a účty nemusí zobrazit automaticky. Viditelnost relací se teď opravuje automaticky; později můžete použít také Správa relací > Opravit viditelnost.",
+      "repairing": "Opravuji viditelnost relací Codexu...",
+      "repairFailed": "Automatická oprava selhala. Zkuste to později ve Správa relací > Opravit viditelnost.",
+      "type": {
+        "apiKey": "Klíč API",
+        "apiService": "Služba API",
+        "account": "Účet"
+      }
+    },
+    "accountNote": {
+      "title": "Poznámka účtu",
+      "label": "Poznámka účtu",
+      "desc": "Přidejte samostatnou poznámku k účtu {{account}}.",
+      "placeholder": "E-mail, heslo, obnovovací e-mail nebo poznámky k předání",
+      "emptyTitle": "Přidat poznámku účtu",
+      "short": "Poznámka",
+      "addShort": "Přidat",
+      "saved": "Poznámka účtu uložena",
+      "saveFailed": "Uložení poznámky účtu selhalo: {{error}}"
+    },
+    "cockpitApi": {
+      "panelTitle": "Panel služby Cockpit Api",
+      "servicePanel": "Panel služby",
+      "balance": "Zůstatek",
+      "requests": "Požadavky",
+      "total": "Celkem",
+      "today": "Dnes",
+      "periods": "Období",
+      "tokens": "Tokeny",
+      "quotaUsed": "Spotřeba",
+      "modelStats": "Statistiky modelů",
+      "noStats": "Zatím žádné statistiky",
+      "refreshHint": "Kliknutím na obnovit synchronizujete statistiky tohoto API klíče.",
+      "dailyStats": "Denní statistiky"
+    },
+    "speed": {
+      "title": "Rychlost",
+      "standard": "Základní",
+      "standardDesc": "Výchozí rychlost, běžné využití",
+      "fast": "Rychlá",
+      "fastDesc": "Rychlost 1,5x, vyšší využití",
+      "saveSuccess": "Rychlost aktualizována",
+      "saveFailed": "Rychlost se nepodařilo uložit: {{error}}"
     }
   },
   "githubCopilot": {
@@ -2256,7 +2467,8 @@
       "desc": "Vložte access token GitHub Copilot nebo exportovaná data JSON."
     },
     "import": {
-      "localDesc": "Importovat účty GitHub Copilot z místně přihlášených relací."
+      "localDesc": "Importujte data účtu GitHub Copilot z místního VS Code nebo souboru JSON.",
+      "localClient": "Importovat z místního VS Code"
     },
     "sort": {
       "weekly": "Týdenní kvóta",
@@ -2271,7 +2483,8 @@
       "premium": "Prémiové požadavky"
     },
     "usage": {
-      "included": "Zahrnuto"
+      "included": "Zahrnuto",
+      "usedOfTotal": "{{used}} z {{total}}"
     },
     "injectToVSCode": "Přepnout do VS Code",
     "injectSuccess": "Token byl úspěšně vložen do VS Code. VS Code se spouští.",
@@ -2281,7 +2494,7 @@
       "desc": "Přepnutí účtu vyžaduje čtení lokálního úložiště ověření ve VS Code a použití systémové služby přihlašovacích údajů pro dešifrování a zpětný zápis; data se zpracovávají pouze lokálně.",
       "inject": "Přepnutí jedním kliknutím: Tento nástroj načte lokální šifrovací materiál VS Code (DPAPI/Keychain/Secret Service), dešifruje autentizační relaci ve state.vscdb, nahradí token GitHub Copilot a znovu ji zašifruje — vše lokálně na vašem zařízení.",
       "reason": "Rozsah oprávnění: čtení databáze ověření VS Code (state.vscdb) a volání systémového šifrování (Windows DPAPI / macOS Keychain / Linux Secret Service) pro dešifrování a zpětný zápis.",
-      "storage": "Rozsah čtení: zpracovávají se pouze položky související s relací přihlášení GitHub a veškeré procesy probíhají lokálně."
+      "storage": "Rozsah dat: místní import čte relace přihlášení GitHub ve VS Code a přepnutí účtu aktualizuje stejné záznamy; OAuth, import tokenu, ověření místního importu a obnovení kvót volají oficiální API GitHub s nezbytnými autentizačními poli. state.vscdb ani systémové klíče se neodesílají."
     }
   },
   "dashboard": {
@@ -2384,6 +2597,18 @@
           "contextWindowInvalid": "Kontextové okno musí být celé číslo větší než 0.",
           "autoCompactInvalid": "Limit automatického zhutnění musí být celé číslo větší než 0."
         }
+      },
+      "appSpeed": {
+        "title": "Rychlost Codexu",
+        "desc": "Uloženo jako rychlost spuštění; zapisuje se před startem Codexu.",
+        "standard": "Standardní",
+        "fast": "Rychlá",
+        "launch": "Restartovat",
+        "loadFailed": "Nepodařilo se načíst rychlost Codexu: {{error}}",
+        "saveSuccess": "Rychlost spuštění Codexu byla uložena.",
+        "saveFailed": "Nepodařilo se uložit rychlost Codexu: {{error}}",
+        "launchSuccess": "Codex byl restartován s uloženou rychlostí.",
+        "launchFailed": "Nepodařilo se restartovat Codex: {{error}}"
       }
     },
     "githubCopilot": {
@@ -3318,37 +3543,6 @@
         "descPlatform": "Více instancí CodeBuddy CN je podporováno pouze na macOS, Windows a Linuxu."
       }
     },
-    "checkin": {
-      "title": "Denní check-in",
-      "modalTitle": "Denní check-in",
-      "status": "Stav check-inu",
-      "checkedIn": "Zaregistrováno",
-      "notCheckedIn": "Nezaregistrováno",
-      "button": {},
-      "button.loading": "Probíhá check-in...",
-      "done": "Hotovo",
-      "success": "Check-in úspěšný! Série {{days}} dní",
-      "failure": {},
-      "failure.network": "Chyba sítě, zkuste to prosím později",
-      "lastCheckin": "Poslední check-in: {{time}}",
-      "streak": "{{days}}denní série",
-      "reward": "Odměna: {{reward}}",
-      "refreshStatus": "Obnovit",
-      "checkAll": "Check-in všeho",
-      "noAccounts": "Žádné účty",
-      "querying": "Načítání...",
-      "streakDays": "{{days}} dní",
-      "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
-      "streakRewardToday": "Bonusová odměna je dnes dostupná!",
-      "recentDates": "Nedávno: ",
-      "quotaCategory": {
-        "base": "Základní balíček",
-        "activity": "Aktivní bonus",
-        "extra": "Extra kredity",
-        "other": "Ostatní",
-        "empty": "Žádná data kvóty"
-      }
-    },
     "syncFailed": "Synchronizace selhala: {{error}}",
     "syncSuccess": "{{count}} účtů bylo synchronizováno s WorkBuddy",
     "syncToWorkbuddy": "Synchronizovat s WorkBuddy"
@@ -3359,9 +3553,9 @@
     "addAccount": "Přidat účet WorkBuddy",
     "flowNotice": {
       "title": "Informace o správě účtů WorkBuddy (kliknutím rozbalíte/sbalíte)",
-      "desc": "Přepínání účtů vyžaduje čtení místního úložiště autentizace WorkBuddy a volání systémových služeb přihlašovacích údajů pro dešifrování/opětovné zašifrování. Data se zpracovávají pouze lokálně.",
-      "permission": "Rozsah oprávnění: čtení databáze autentizace WorkBuddy (state.vscdb), volání systémových schopností pro přihlašovací údaje (macOS Keychain / Windows DPAPI / Linux Secret Service) pro dešifrování/zápis zpět.",
-      "network": "Rozsah sítě: přihlášení OAuth a obnovení tokenu vyžadují síťové požadavky na WorkBuddy; dotazy na kvótu volají billing API. Žádné místní klíče ani přihlašovací údaje se neodesílají."
+      "desc": "Přepnutí účtu zapisuje místní soubor přihlášení podle aktuální struktury oficiálního klienta WorkBuddy; místní import čte stejný soubor. Data se zpracovávají pouze lokálně.",
+      "permission": "Rozsah oprávnění: čtení a zápis přihlašovacího souboru WorkBuddy (CodeBuddyExtension/Data/Public/auth/workbuddy-desktop.info) pro místní import a přepínání účtů; starší state.vscdb se již nečte ani neupravuje.",
+      "network": "Rozsah sítě: přihlášení OAuth a obnovení tokenu vyžadují síťové požadavky na WorkBuddy; dotazy na kvótu volají billing API. Místní přihlašovací soubory ani surové přihlašovací údaje se neodesílají."
     },
     "nickname": "Přezdívka",
     "enterprise": "Podnikový",
@@ -3455,6 +3649,30 @@
     },
     "quota": {
       "usedOfTotal": "{{used}} / {{total}}"
+    },
+    "checkin": {
+      "title": "Denní check-in",
+      "modalTitle": "Denní check-in",
+      "status": "Stav check-inu",
+      "checkedIn": "Zaregistrováno",
+      "notCheckedIn": "Nezaregistrováno",
+      "button": "Přihlásit",
+      "button.loading": "Probíhá check-in...",
+      "done": "Hotovo",
+      "success": "Check-in úspěšný! Série {{days}} dní",
+      "failure": "Přihlášení selhalo: {{message}}",
+      "failure.network": "Chyba sítě, zkuste to prosím později",
+      "lastCheckin": "Poslední check-in: {{time}}",
+      "streak": "{{days}}denní série",
+      "reward": "Odměna: {{reward}}",
+      "refreshStatus": "Obnovit",
+      "checkAll": "Check-in všeho",
+      "noAccounts": "Žádné účty",
+      "querying": "Načítání...",
+      "streakDays": "{{days}} dní",
+      "streakRewardCountdown": "Do bonusové odměny zbývá {{days}} dní",
+      "streakRewardToday": "Bonusová odměna je dnes dostupná!",
+      "recentDates": "Nedávno: "
     }
   },
   "zed": {
@@ -3651,5 +3869,16 @@
     "cancelEditAccountName": "Zrušit úpravy",
     "accountNameRequired": "Název účtu je povinný.",
     "copySecret": "Kopírovat tajný klíč"
+  },
+  "logViewer": {
+    "fileLabel": "Soubor logu",
+    "levelLabel": "Úroveň",
+    "noMatches": "Žádné záznamy neodpovídají aktuálnímu filtru",
+    "levels": {
+      "all": "Vše",
+      "info": "Info",
+      "warn": "Varování",
+      "error": "Chyba"
+    }
   }
 }
